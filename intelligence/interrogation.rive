@@ -1,0 +1,21 @@
+> object age python
+    from modules.Datetime import Datetime
+    dt = Datetime()
+    return dt.how_long_ago(" ".join(args))
+< object
+
+// Who is your master?
++ (@nicks) who is your (master|owner)
+- <bot master> is my <star2>.
+- My <star2> is <bot master>.
+- <bot master>.
+- <bot master>!
+
++ who is your (master|owner)
+* <get directed> == True => {@ nano who is your <star>}
+
+// How old are you?
++ (@nicks) how old are you
+- {weight=3}I'm <call>age <bot epoch></call> old!
+- I'm <call>age <bot epoch></call> old.
+- <call>age <bot epoch></call> years old.
