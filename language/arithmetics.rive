@@ -1,0 +1,20 @@
+> object math python
+    from modules.Math import NumericStringParser
+    nsp = NumericStringParser()
+    return nsp.eval(" ".join(args))
+< object
+
++ (@nicks) what is the sum of *
+- <call>math <star2></call>
+
++ what is the sum of *
+* <get directed> == True => {@ nano what is the sum of <star>}
+
++ (@nicks) what is # *
+- {@ nano what is the sum of <star2> <star3>}
+
++ what is # *
+* <get directed> == True => {@ nano what is the sum of <star1> <star2>}
+
++ [@nicks] what is the answer to life the universe and everything [@nicks]
+- 42
