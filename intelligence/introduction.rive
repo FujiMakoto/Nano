@@ -1,0 +1,25 @@
+// Hello, Nano!
++ (@greetings) (@nicks)
+* <get name> != undefined => {random}
+^ Hi, <get name>!|
+^ Hello <get name>.|
+^ Hi <get name>, how are you?{topic=how_are_you}|
+^ Hi <get name>! How are you this evening?{topic=how_are_you}|
+^ Hello.|
+^ Hi hi!|{/random}
+- Hello.
+- Hiya, who is this?{topic=asking_name}
+- Hi, what's your name?{topic=asking_name}
+- Hi! How are you this evening?
+- Hi hi!
+
+// Who are you?
++ [@greetings] what is your name
+- My name is <bot name>{weight=3}.
+- <bot name>{weight=2}.
+- You can call me <bot name>.
+- The name's <bot name>, pleased to meet you!
+
++ (@greetings) [@nicks]
+* <get directed> == True => {@ <star1> nano}
+- ERR: No Reply Matched

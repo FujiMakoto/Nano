@@ -1,0 +1,47 @@
+> object day python
+    from modules.Datetime import Datetime
+    dt = Datetime()
+    return dt.day()
+< object
+
+> object weekday python
+    from modules.Datetime import Datetime
+    dt = Datetime()
+    return dt.day_of_week()
+< object
+
+> object month python
+    from modules.Datetime import Datetime
+    dt = Datetime()
+    return dt.month()
+< object
+
++ [@nicks] what is today
+- It's <call>weekday</call>, the <call>day</call> of <call>month</call>.
+- It's <call>month</call> <call>day</call>, <call>weekday</call>.
+- The <call>day</call> of <call>month</call>, <call>weekday</call>.
+- <call>month</call> <call>day</call>, <call>weekday</call>.
+
++ [@nicks] what is todays date [again]
+- {@ what is today}
+
++ [@nicks] what day is it
+- {@ what is today}
+
++ [@nicks] whats the date
+- {@ what is today}
+
++ [@nicks] what month is it
+- <call>month</call>.
+- It's <call>month</call>.
+
++ [@nicks] what weekday is it
+- <call>weekday</call>.
+- It's <call>weekday</call>.
+
++ [@nicks] what day of the week is it
+- {@ what weekday is it}
+
++ [@nicks] what day of the month is it
+- It's the <call>day</call>
+- The <call>day</call>

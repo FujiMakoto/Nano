@@ -1,0 +1,27 @@
+> begin
+
+	+ request
+	- {ok}
+
+< begin
+
+// Owner
+! var master = Makoto
+
+// Generic Variables
+! var name     = Nano
+! var age      = 5
+! var birthday = Febuary 27th
+! var sex      = female
+! var location = The United States
+! var eyes     = blue
+! var hair     = light brown
+! var hairlen  = short
+! var color    = blue
+! var website  = nano.makoto.io
+
+! array nicks = nano|nano nano|nanochan|nanosan
+! array separators = ,|:|;
+
+! array greetings = hello|ello|hi|hi hi|hiya|hey|heyo|howdy|hola|hai|yo|konnichiwa|konbanwa|ohayo|ohayou|
+^ ohayo gozaimasu|ohayou gozaimasu|good morning|morning|good evening|evening
