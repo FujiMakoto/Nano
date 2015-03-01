@@ -16,6 +16,12 @@
     return dt.month()
 < object
 
+> object time python
+    from modules.Datetime import Datetime
+    dt = Datetime()
+    return dt.time()
+< object
+
 + [@nicks] what is today
 - It's <call>weekday</call>, the <call>day</call> of <call>month</call>.
 - It's <call>month</call> <call>day</call>, <call>weekday</call>.
@@ -44,4 +50,8 @@
 
 + [@nicks] what day of the month is it
 - It's the <call>day</call>
-- The <call>day</call>
+- The <call>day</call>.
+
++ [@nicks] what time is it
+- {weight=3}I don't know what time it is where you live, but it's <call>time</call> here.
+- It's <call>time</call> where I live.
