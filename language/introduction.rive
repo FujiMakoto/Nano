@@ -13,13 +13,15 @@
 - Hi! How are you this evening?
 - Hi hi!
 
++ (@greetings)
+* <get directed> == True => {@ <star1> nano}
+
 // Who are you?
-+ [@greetings] what is your name
-- My name is <bot name>{weight=3}.
-- <bot name>{weight=2}.
-- You can call me <bot name>.
++ (@nicks) [@greetings] what is your name
+- {weight=5}My name is <bot name>.
+- {weight=2}You can call me <bot name>.
+- {weight=2}<bot name>.
 - The name's <bot name>, pleased to meet you!
 
-+ (@greetings) [@nicks]
-* <get directed> == True => {@ <star1> nano}
-- ERR: No Reply Matched
++ [@greetings] what is your name [@nicks]
+* <get directed> == True => {@ nano what is your name}

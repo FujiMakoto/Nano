@@ -34,7 +34,7 @@
 + [@nicks] what day is it
 - {@ what is today}
 
-+ [@nicks] whats the date
++ [@nicks] what is the date
 - {@ what is today}
 
 + [@nicks] what month is it
