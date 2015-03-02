@@ -1,0 +1,7 @@
+> object lucky python
+    from modules.Google import Google
+    return Google.lucky(" ".join(args))
+< object
+
++ (@nicks) [can you|will you|please] google (*)
+- <call>lucky <star2></call>

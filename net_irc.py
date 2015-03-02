@@ -29,6 +29,7 @@ import irc.bot
 import irc.strings
 from irc.client import ip_numstr_to_quad, ip_quad_to_numstr, log
 import re
+import html.parser
 import nano
 
 
@@ -49,8 +50,17 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         source = str(e.source).split("@", 1)
         self.handler.set_name(source[1], e.source.nick)
 
-        # Get and send our reply
+        # Get our reply
         reply = self.handler.send(source[1], e.arguments[0], True)
+
+        # Apply some formatting and parsing
+        # Replace HTML <strong> tags with IRC bold codes
+        reply = re.sub("(<strong>|<\/strong>)", "\x02", reply, 0, re.UNICODE)
+
+        # Replace HTML entities
+        hp = html.parser.HTMLParser()
+        reply = hp.unescape(reply)
+
         c.privmsg(e.source.nick, reply)
 
     def on_pubmsg(self, c, e):
@@ -58,8 +68,17 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         source = str(e.source).split("@", 1)
         self.handler.set_name(source[1], e.source.nick)
 
-        # Get and send our reply
+        # Get our reply
         reply = self.handler.send(source[1], e.arguments[0])
+
+        # Apply some formatting and parsing
+        # Replace HTML <strong> tags with IRC bold codes
+        reply = re.sub("(<strong>|<\/strong>)", "\x02", reply, 0, re.UNICODE)
+
+        # Replace HTML entities
+        hp = html.parser.HTMLParser()
+        reply = hp.unescape(reply)
+
         c.privmsg(self.channel, reply)
 
     def on_dccmsg(self, c, e):

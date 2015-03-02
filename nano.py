@@ -5,7 +5,7 @@ from modules.exceptions import ModuleDisabledError
 import re
 
 rs = RiveScript()
-rs.load_directory("./intelligence")
+rs.load_directory("./language")
 rs.sort_replies()
 
 

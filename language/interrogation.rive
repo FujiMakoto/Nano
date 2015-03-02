@@ -18,4 +18,4 @@
 + (@nicks) how old are you
 - {weight=3}I'm <call>age <bot epoch></call> old!
 - I'm <call>age <bot epoch></call> old.
-- <call>age <bot epoch></call> years old.
+- <call>age <bot epoch></call> old.
