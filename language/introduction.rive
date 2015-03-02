@@ -93,7 +93,7 @@
 - I'm okay. How are you?{topic=how_are_you}
 
 + [@greetings] how are you [doing|feeling|today|this evening|this morning|this afternoon] (@nicks)
-- {@ nano, how are you}
+- {@ nano how are you}
 
 + [@greetings] how are you [doing|feeling|today|this evening|this morning|this afternoon] [*]
 * <get directed> == True => {@ nano, how are you}
@@ -106,11 +106,10 @@
 	- That's good to hear.{topic=random}
 	- Just <star>? I hope the rest of your day goes well!{topic=random}
 
-	+ [*] (okay|alright|fine|decent|not bad) [*]
-	- {weight=3}That's good to hear, I hope the rest of your day goes well!{topic=random}
-	- {weight=2}Only <star>?{topic=random}
-	- That's good to hear.{topic=random}
-	- Just <star>? I hope the rest of your day goes well!{topic=random}
+	+ [*] (good|great|wonderful|happy|awesome|brilliant) [*]
+	- {weight=3}That's great to hear, I hope the rest of your day is <star> as well!{topic=random}
+	- {weight=2}Glad to hear you're <star>!{topic=random}
+	- That's good to hear!{topic=random}
 
 	+ [*] (bad|sad|depressed|miserable|down) [*]
 	- I'm sorry to hear that, what's wrong?{topic=random}
