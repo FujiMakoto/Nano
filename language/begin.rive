@@ -19,6 +19,7 @@
 //! var hairlen  = short
 //! var color    = blue
 ! var website  = nano.makoto.io
+! var mood     = happy
 
 // Substitutions
 ! sub &quot;    = "
@@ -123,7 +124,7 @@
 ! sub b/f       = boyfriend
 ! sub b/f/f     = best friend forever
 ! sub ;_;       = rainyface
-! sub .-.       = neutralface
+! sub .-.       = bored
 ! sub :-)       = smile
 ! sub :)        = smile
 ! sub :d        = grin
@@ -141,7 +142,8 @@
 ! sub >:o       = angry
 
 ! array nicks = nano|nano nano|nanochan|nanosan
-! array separators = ,|:|;
+! array positive_moods = content|playful|happy|loving
+! array negative_moods = annoyed|scared|confused|embarrassed|irritated|lonely|melancholic|overwhelmed|rejected
 
 ! array greetings = hello|ello|hi|hi hi|hiya|hey|heyo|howdy|hola|hai|yo|konnichiwa|konbanwa|ohayo|ohayou|
 ^ ohayo gozaimasu|ohayou gozaimasu|good morning|morning|good evening|evening

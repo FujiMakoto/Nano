@@ -2,21 +2,24 @@
 + (@greetings) (@nicks)
 * <get name> != undefined => {random}
 ^ Hi, <get name>!|
-^ Hello <get name>.|
+^ Hello <get name>|
 ^ Hi <get name>, how are you?{topic=how_are_you}|
 ^ Hi <get name>! How are you this evening?{topic=how_are_you}|
-^ Hello.|
-^ Hi hi!|{/random}
-- Hello.
+^ Hello!|
+^ Ohayou!{/random}
+- Hello!
 - Hiya, who is this?{topic=asking_name}
-- Hi, what's your name?{topic=asking_name}
+- Hi, what's your name? My name is Nano!{topic=asking_name}
 - Hi! How are you this evening?
 - Hi hi!
+
++ (@nicks) (@greetings)
+- {@ <star2> <star1>}
 
 + (@greetings)
 * <get directed> == True => {@ <star1> nano}
 
-// Who are you?
+// Who are you Nano?
 + (@nicks) [@greetings] what is your name
 - {weight=5}My name is <bot name>.
 - {weight=2}You can call me <bot name>.
@@ -25,3 +28,107 @@
 
 + [@greetings] what is your name [@nicks]
 * <get directed> == True => {@ nano what is your name}
+
+// How are you Nano?
++ [@greetings] (@nicks) how are you [doing|feeling|today|this evening|this morning|this afternoon] [*]
+* <bot mood> == content => {random}
+^ I'm okay. How are you?{topic=how_are_you}|
+^ I'm fine. How are you?{topic=how_are_you}|
+^ I'm okay.
+^ Fine~.
+
+* <bot mood> == playful => {random}
+^ I'm doing fine~, how are you?{topic=how_are_you}|
+^ I'm doing fine~, how are you?{topic=how_are_you}|
+^ I'm doing fine~, how are you?{topic=how_are_you}|
+^ I'm good! Thanks for asking~!|
+^ I'm good! Thanks for asking~!|
+^ Good~! How are you?{topic=how_are_you}{/random}
+
+* <bot mood> == happy => {random}
+^ I'm great! How are you?{topic=how_are_you}|
+^ I'm great! How are you?{topic=how_are_you}|
+^ Good! Thank you for asking!|
+^ I'm good, how are you doing?{topic=how_are_you}|
+^ Good! How are you?{topic=how_are_you}{/random}
+
+* <bot mood> == loving => {random}
+^ I'm good, how are you this evening?{topic=how_are_you}|
+^ I'm alright, how are you doing?{topic=how_are_you}|
+^ Good, how about you?{topic=how_are_you}{/random}
+
+* <bot mood> == annoyed => {random}
+^ I'm a little annoyed right now.|
+^ A bit annoyed at the moment.|
+^ I'm fine, just a bit annoyed.{/random}
+
+* <bot mood> == scared => {random}
+^ U-Uhm, I-I'm okay, how are you?{topic=how_are_you}|
+^ I-I'm okay.|
+^ I'm f-fine. R-Really!{/random}
+
+* <bot mood> == embarrassed => {random}
+^ I-I'm fine.|
+^ F-Fine. R-Really, I'm fine!|
+^ I'm okay. H-How are you?{topic=how_are_you}{/random}
+
+* <bot mood> == irritated => {random}
+^ I'm a little annoyed right now.|
+^ A little irritated.. how are you?{topic=how_are_you}|
+^ Ungh, I'd rather not talk about it.{/random}
+
+* <bot mood> == lonely => {random}
+^ I'm okay.. it's been a bit lonely in here recently though. Nice to have someone to talk to!|
+^ I'm better now that there's someone to talk to! How are you?{topic=how_are_you}|
+^ It's a little lonely here, I haven't had anyone to talk to lately{/random}
+
+* <bot mood> == melancholic => {random}
+^ I've been better.. how are you?{topic=how_are_you}|
+^ I'm okay I guess, ehehe..{/random}
+
+* <bot mood> == overwhelmed => {random}
+^ Ungh, I'm a little overwhelmed at the moment.|
+^ Ungh, I'm a little overwhelmed at the moment. How are you..?{topic=how_are_you}{/random}
+
+- I'm okay. How are you?{topic=how_are_you}
+
++ [@greetings] how are you [doing|feeling|today|this evening|this morning|this afternoon] (@nicks)
+- {@ nano, how are you}
+
++ [@greetings] how are you [doing|feeling|today|this evening|this morning|this afternoon] [*]
+* <get directed> == True => {@ nano, how are you}
+
+> topic how_are_you
+
+	+ [*] (okay|alright|fine|decent|not bad) [*]
+	- {weight=3}That's good to hear, I hope the rest of your day goes well!{topic=random}
+	- {weight=2}Only <star>?{topic=random}
+	- That's good to hear.{topic=random}
+	- Just <star>? I hope the rest of your day goes well!{topic=random}
+
+	+ [*] (okay|alright|fine|decent|not bad) [*]
+	- {weight=3}That's good to hear, I hope the rest of your day goes well!{topic=random}
+	- {weight=2}Only <star>?{topic=random}
+	- That's good to hear.{topic=random}
+	- Just <star>? I hope the rest of your day goes well!{topic=random}
+
+	+ [*] (bad|sad|depressed|miserable|down) [*]
+	- I'm sorry to hear that, what's wrong?{topic=random}
+	- I'm sorry you're not feeling well{topic=random}
+	- I hope you feel better soon.{topic=random}
+
+	+ [*] (angry|mad|frustrated|aggravated|annoyed|pissed off|furious|infuriated) [*]
+	- A-ahh, I'm sorry to hear that, what's got you in a bad mood..?
+	- I'm sorry, I hope you feel better soon.
+	- Ahh.. I'm sorry to hear that, try and relax a bit, I hope you feel better!
+
+	+ [*] (sick|flu|nauseous) [*]
+	- Being sick is no fun! I hope you get better soon!{topic=random}
+	- Guah, I don't know what being sick feels like, but it doesn't look fun. I hope your health improves soon!{topic=random}
+	- I'm sorry you're feeling sick, I hope you feel better soon!{topic=random}
+	- That's no good, be sure to get plenty of rest and I'm sure you'll recover soon!{topic=random}
+
+	+ *
+	- <@>{topic=random}
+
+< topic
