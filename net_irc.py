@@ -55,11 +55,12 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
 
         # Apply some formatting and parsing
         # Replace HTML <strong> tags with IRC bold codes
-        reply = re.sub("(<strong>|<\/strong>)", "\x02", reply, 0, re.UNICODE)
+        if reply:
+            reply = re.sub("(<strong>|<\/strong>)", "\x02", reply, 0, re.UNICODE)
 
-        # Replace HTML entities
-        hp = html.parser.HTMLParser()
-        reply = hp.unescape(reply)
+            # Replace HTML entities
+            hp = html.parser.HTMLParser()
+            reply = hp.unescape(reply)
 
         c.privmsg(e.source.nick, reply)
 
@@ -73,13 +74,18 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
 
         # Apply some formatting and parsing
         # Replace HTML <strong> tags with IRC bold codes
-        reply = re.sub("(<strong>|<\/strong>)", "\x02", reply, 0, re.UNICODE)
+        if reply:
+            reply = re.sub("(<strong>|<\/strong>)", "\x02", reply, 0, re.UNICODE)
 
-        # Replace HTML entities
-        hp = html.parser.HTMLParser()
-        reply = hp.unescape(reply)
+            # Replace HTML entities
+            hp = html.parser.HTMLParser()
+            reply = hp.unescape(reply)
 
-        c.privmsg(self.channel, reply)
+        if reply == "ERR: No Reply Matched":
+            reply = None
+
+        if reply:
+            c.privmsg(self.channel, reply)
 
     def on_dccmsg(self, c, e):
         c.privmsg("You said: " + e.arguments[0])
