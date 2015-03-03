@@ -1,51 +1,58 @@
-#! /usr/bin/env python
-#
-# Example program using irc.bot.
-#
-# Joel Rosdahl <joel@rosdahl.net>
-
-"""A simple example bot.
-
-This is an example bot that uses the SingleServerIRCBot class from
-irc.bot.  The bot enters a channel and listens for commands in
-private messages and channel traffic.  Commands in channel messages
-are given by prefixing the text by the bot name followed by a colon.
-It also responds to DCC CHAT invitations and echos data sent in such
-sessions.
-
-The known commands are:
-
-    stats -- Prints some channel information.
-
-    disconnect -- Disconnect the bot.  The bot will try to reconnect
-                  after 60 seconds.
-
-    die -- Let the bot cease to exist.
-
-    dcc -- Let the bot invite you to a DCC CHAT connection.
+# !/usr/bin/env python3
 """
-
+net_irc.py: Establish an IRC connection
+"""
+import re
+import html.parser
 import irc.bot
 import irc.strings
 from irc.client import ip_numstr_to_quad, ip_quad_to_numstr, log
-import re
-import html.parser
 import nano
+
+__author__     = "Makoto Fujikawa"
+__copyright__  = "Copyright 2015, Makoto Fujikawa"
+__version__    = "1.0.0"
+__maintainer__ = "Makoto Fujikawa"
 
 
 class NanoIRC(irc.bot.SingleServerIRCBot):
+    """
+    Establishes a new connection to the configured IRC server
+    """
     def __init__(self, channel, nickname, server, port=6667):
+        """
+        Initialize a new Nano IRC instance
+        :param channel: str: The channel to join
+        :param nickname: str: The nick to use
+        :param server: str: The server to connect to
+        :param port: int: The server port number
+        """
         irc.bot.SingleServerIRCBot.__init__(self, [(server, port)], nickname, nickname)
         self.channel = channel
         self.handler = nano.Handler(None)
 
     def on_nicknameinuse(self, c, e):
+        """
+        If our nick is in use on connect, append an underscore to it and try again
+        :param c:
+        :param e:
+        """
         c.nick(c.get_nickname() + "_")
 
     def on_welcome(self, c, e):
+        """
+        Join our specified channel once we get a welcome to the server
+        :param c:
+        :param e:
+        """
         c.join(self.channel)
 
     def on_privmsg(self, c, e):
+        """
+        Handle private messages / queries
+        :param c:
+        :param e:
+        """
         # Get our hostmask to use as our name
         source = str(e.source).split("@", 1)
         self.handler.set_name(source[1], e.source.nick)
@@ -65,6 +72,11 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         c.privmsg(e.source.nick, reply)
 
     def on_pubmsg(self, c, e):
+        """
+        Handle channel messages
+        :param c:
+        :param e:
+        """
         # Get our hostmask to use as our name
         source = str(e.source).split("@", 1)
         self.handler.set_name(source[1], e.source.nick)
@@ -86,51 +98,6 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
 
         if reply:
             c.privmsg(self.channel, reply)
-
-    def on_dccmsg(self, c, e):
-        c.privmsg("You said: " + e.arguments[0])
-
-    def on_dccchat(self, c, e):
-        if len(e.arguments) != 2:
-            return
-        args = e.arguments[1].split()
-        if len(args) == 4:
-            try:
-                address = ip_numstr_to_quad(args[2])
-                port = int(args[3])
-            except ValueError:
-                return
-            self.dcc_connect(address, port)
-
-    def do_command(self, e, cmd):
-        import sys
-        nick = e.source.nick
-        c = self.connection
-
-        if cmd == "disconnect":
-            self.disconnect()
-        elif cmd == "die":
-            self.die()
-        elif cmd == "stats":
-            for chname, chobj in self.channels.items():
-                c.privmsg(sys.argv[2], "--- Channel statistics ---")
-                c.privmsg(sys.argv[2], "Channel: " + chname)
-                users = list(chobj.users())
-                users.sort()
-                c.privmsg(sys.argv[2], "Users: " + ", ".join(users))
-                opers = list(chobj.opers())
-                opers.sort()
-                c.privmsg(sys.argv[2], "Opers: " + ", ".join(opers))
-                voiced = list(chobj.voiced())
-                voiced.sort()
-                c.privmsg(sys.argv[2], "Voiced: " + ", ".join(voiced))
-        elif cmd == "dcc":
-            dcc = self.dcc_listen()
-            c.ctcp("DCC", nick, "CHAT chat %s %d" % (
-                ip_quad_to_numstr(dcc.localaddress),
-                dcc.localport))
-        else:
-            c.notice(nick, "Not understood: " + cmd)
 
 
 def main():
