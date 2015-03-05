@@ -22,8 +22,7 @@ class IRCChannelLogger:
         :param channel: str: The channel being logged
         """
         # Load the logger configuration file
-        self.config = ConfigParser()
-        self.config.read("config/logger.cfg")
+        self.config = self.config()
 
         # Load the IRC section of our configuration
         if self.config.has_section('IRC'):
@@ -53,7 +52,7 @@ class IRCChannelLogger:
         :param nick: str: Nickname of the message sender
         :param message: str: The message to be logged
         """
-        log_entry = self.get_timestamp() + " <" + nick + "> " + message
+        log_entry = self.get_timestamp() + " <%s> %s" % (nick, message)
         self.logfile.write(log_entry + "\n")
 
     def log_action(self, nick, action):
@@ -84,6 +83,7 @@ class IRCChannelLogger:
         """
         config = ConfigParser()
         config.read("config/logger.cfg")
+
         return config
 
 
@@ -98,8 +98,7 @@ class IRCQueryLogger(IRCChannelLogger):
         :param nick: str: The nick of the user who is being query logged
         """
         # Load the logger configuration file
-        self.config = ConfigParser()
-        self.config.read("config/logger.cfg")
+        self.config = self.config()
 
         # Load the IRC section of our configuration
         if self.config.has_section('IRC'):
@@ -118,7 +117,7 @@ class IRCQueryLogger(IRCChannelLogger):
         self.logfile_path = self.base_path + self.logfile_name
 
         # Make sure our logfile directory exists
-        os.makedirs(self.base_path, 0o0770, True)
+        os.makedirs(self.base_path, 0o0750, True)
 
         # Open the logfile in append+read mode
         self.logfile = open(self.logfile_path, "a+")

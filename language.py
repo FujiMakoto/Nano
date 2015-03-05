@@ -25,7 +25,7 @@ class Language:
 
         # Initialize RiveScript
         self.rs = RiveScript(self.config.getboolean('Language', 'Debug'))
-        self.rs.load_directory("./language")
+        self.rs.load_directory("./lang")
         self.rs.sort_replies()
 
     def get_reply(self, source, message):
