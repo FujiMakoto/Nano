@@ -1,52 +1,35 @@
-#!/usr/bin/python
-
-from rivescript import RiveScript
-from modules.exceptions import ModuleDisabledError
-import re
-
-rs = RiveScript()
-rs.load_directory("./language")
-rs.sort_replies()
-
-
-class Handler():
-    def __init__(self, name="localuser"):
-        self.name = name
-
-    def send(self, source, message, directed=False):
-        # Perform some parsing on our response
-        message = re.sub("\x03(?:\d{1,2}(?:,\d{1,2})?)?", "", message, 0, re.UNICODE)
-        directed_pattern = re.compile("^nano(\W)?\s+", re.IGNORECASE)
-
-        # Was this message directed at us?
-        if not directed:
-            directed = bool(directed_pattern.match(message))
-
-        """
-        if directed:
-            message = directed_pattern.sub("", message)
-        """
-
-        rs.set_uservar(source, "directed", directed)
-
-        # Get and return our reply
-        try:
-            return rs.reply(source, message)
-        except IndexError:
-            print("Empty set matched")
-        except ModuleDisabledError:
-            print("Disabled module called")
-
-
-    def set_name(self, source, name):
-        rs.set_uservar(source, "name", name)
-
-
+#!/usr/bin/env python3
 """
-while True:
-    msg = input("You> ")
-    if msg == '/quit':
-        quit()
-    reply = rs.reply("localuser", msg)
-    print("Bot>", reply)
+net_irc.py: Establish an IRC connection
 """
+from net_irc import NanoIRC
+
+__author__     = "Makoto Fujikawa"
+__copyright__  = "Copyright 2015, Makoto Fujikawa"
+__version__    = "1.0.0"
+__maintainer__ = "Makoto Fujikawa"
+
+
+class Nano:
+
+    @staticmethod
+    def irc():
+        irc_config = NanoIRC.load_config()
+
+        for network in irc_config.sections():
+            # Get our configuration for this network
+            config = irc_config[network]
+            """:type : configparser.ConfigParser"""
+
+            # If it's active and we should automatically connect to it..
+            if config.getboolean(network, "Active") and config.getboolean(network, "AutoConnect"):
+                nano_irc = NanoIRC(config["Channels"], config["Nick"], config["Server"], int(config["Port"]))
+                nano_irc.start()
+
+
+def main():
+    Nano.irc()
+
+
+if __name__ == "__main__":
+    main()
