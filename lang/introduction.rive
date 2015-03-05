@@ -87,8 +87,8 @@
 ^ I'm okay I guess, ehehe..{/random}
 
 * <bot mood> == overwhelmed => {random}
-^ Ungh, I'm a little overwhelmed at the moment.|
-^ Ungh, I'm a little overwhelmed at the moment. How are you..?{topic=how_are_you}{/random}
+^ Uwah, I'm a little overwhelmed at the moment.|
+^ Uwah, I'm a little overwhelmed at the moment. How are you..?{topic=how_are_you}{/random}
 
 - I'm okay. How are you?{topic=how_are_you}
 

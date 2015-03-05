@@ -7,7 +7,7 @@
 + (@nicks) what is the sum of *
 - <call>math <star2></call>
 
-+ what is the sum of *
++ what is the (sum|product) of *
 * <get directed> == True => {@ nano what is the sum of <star>}
 
 + (@nicks) what is # *
