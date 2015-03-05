@@ -99,8 +99,12 @@ class PyGoogle:
     def __search__(self, print_results=False):
         """
         Internal search query
-        :param print_results: bool
-        :return: list of results if successful or False otherwise
+
+        Args:
+            print_results(bool)
+
+        Returns:
+            dict or bool
         """
         results = []
         for page in range(0, self.pages):
@@ -143,7 +147,9 @@ class PyGoogle:
     def search(self):
         """
         Perform a Google search query and return the results as a dictionary
-        :return: dict of Titles and URLs
+
+        Returns:
+            dict: Results
         """
         results = {}
         search_results = self.__search__()
@@ -164,7 +170,9 @@ class PyGoogle:
     def search_page_wise(self):
         """
         Get a dict of page-wise urls
-        :return: dict
+
+        Returns:
+            dict: page-wise URL's
         """
         results = {}
         for page in range(0, self.pages):
@@ -192,7 +200,9 @@ class PyGoogle:
     def get_urls(self):
         """
         Get a list of result URLs
-        :return: list
+
+        Returns:
+            dict: URL's
         """
         results = []
         search_results = self.__search__()
@@ -209,7 +219,9 @@ class PyGoogle:
     def get_result_count(self):
         """
         Get the number of results
-        :return: int
+
+        Returns:
+            int: Result count
         """
         temp = self.pages
         self.pages = 1

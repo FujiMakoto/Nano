@@ -22,36 +22,32 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
     def __init__(self, channel, nickname, server, port=6667):
         """
         Initialize a new Nano IRC instance
-        :param channel: str: The channel to join
-        :param nickname: str: The nick to use
-        :param server: str: The server to connect to
-        :param port: int: The server port number
+
+        Args:
+            channel(str):  The channel to join
+            nickname(str): The nick to use
+            server(str):   The server to connect to
+            port(int):     The server port number
         """
-        irc.bot.SingleServerIRCBot.__init__(self, [(server, port)], nickname, nickname)
+        super().__init__(self, [(server, port)], nickname, nickname)
         self.channel = channel
         self.lang    = Language()
 
     def on_nicknameinuse(self, c, e):
         """
         If our nick is in use on connect, append an underscore to it and try again
-        :param c:
-        :param e:
         """
         c.nick(c.get_nickname() + "_")
 
     def on_welcome(self, c, e):
         """
         Join our specified channel once we get a welcome to the server
-        :param c:
-        :param e:
         """
         c.join(self.channel)
 
     def on_privmsg(self, c, e):
         """
         Handle private messages / queries
-        :param c:
-        :param e:
         """
         # Get our hostmask to use as our name
         source = str(e.source).split("@", 1)
@@ -70,8 +66,6 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
     def on_pubmsg(self, c, e):
         """
         Handle channel messages
-        :param c:
-        :param e:
         """
         # Get our hostmask to use as our name
         source = str(e.source).split("@", 1)
@@ -91,8 +85,12 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
     def html_to_control_codes(message):
         """
         Replace accepted HTML formatting with control codes and strip any excess HTML that remains
-        :param message: The message to parse
-        :return: str: The IRC formatted string
+
+        Args:
+            message(str): The message to parse
+
+        Returns:
+            str: The IRC formatted string
         """
         # Parse bold text
         message = re.sub("(<strong>|<\/strong>)", "\x02", message, 0, re.UNICODE)
@@ -109,7 +107,9 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
     def load_config(network=None):
         """
         Static method that returns the logger configuration
-        :rtype: ConfigParser
+
+        Returns:
+            ConfigParser
         """
         config = ConfigParser()
         config.read('config/irc.cfg')

@@ -18,8 +18,10 @@ class IRCChannelLogger:
     def __init__(self, network, channel):
         """
         Initialize a new IRC Channel Logger instance
-        :param network: str: The IRC network name
-        :param channel: str: The channel being logged
+
+        Args:
+            network(str): The IRC network name
+            channel(str): The channel being logged
         """
         # Load the logger configuration file
         self.config = self.config()
@@ -41,7 +43,7 @@ class IRCChannelLogger:
         self.logfile_path = self.base_path + self.logfile_name
 
         # Make sure our logfile directory exists
-        os.makedirs(self.base_path, 0o0770, True)
+        os.makedirs(self.base_path, 0o0750, True)
 
         # Open the logfile in append+read mode
         self.logfile = open(self.logfile_path, "a+")
@@ -49,8 +51,10 @@ class IRCChannelLogger:
     def log_message(self, nick, message):
         """
         Log a new channel message entry
-        :param nick: str: Nickname of the message sender
-        :param message: str: The message to be logged
+
+        Args:
+            nick(str):    IRC Nick of the message sender
+            message(str): The message to be logged
         """
         log_entry = self.get_timestamp() + " <%s> %s" % (nick, message)
         self.logfile.write(log_entry + "\n")
@@ -58,8 +62,10 @@ class IRCChannelLogger:
     def log_action(self, nick, action):
         """
         Log a new channel action entry
-        :param nick: str: Nickname of the action sender
-        :param action: str: The action to be logged
+
+        Args:
+            nick(str):   IRC Nick of the message sender
+            action(str): The action to be logged
         """
         log_entry = self.get_timestamp() + " * %s %s" % (nick, action)
         self.logfile.write(log_entry + "\n")
@@ -67,8 +73,12 @@ class IRCChannelLogger:
     def get_timestamp(self, timestamp_format=None):
         """
         Returns a formatted timestamp
-        :param timestamp_format: str: strftime format to use, defaults to format specified in config
-        :return: str
+
+        Args:
+            timestamp_format(str): strftime format to use, defaults to format specified in config
+
+        Returns:
+            str
         """
         if timestamp_format:
             return time.strftime(timestamp_format, time.localtime(time.time()))
@@ -79,7 +89,9 @@ class IRCChannelLogger:
     def config():
         """
         Static method that returns the logger configuration
-        :return: ConfigParser
+
+        Returns:
+            ConfigParser
         """
         config = ConfigParser()
         config.read("config/logger.cfg")
@@ -94,8 +106,10 @@ class IRCQueryLogger(IRCChannelLogger):
     def __init__(self, network, nick):
         """
         Initialize a new IRC Query Logger instance
-        :param network: str: The IRC network name
-        :param nick: str: The nick of the user who is being query logged
+
+        Args:
+            network(str): The IRC network name
+            nick(str):    The IRC Nick of the user who is being query logged
         """
         # Load the logger configuration file
         self.config = self.config()
@@ -125,8 +139,10 @@ class IRCQueryLogger(IRCChannelLogger):
     def log_message(self, message, nick=None):
         """
         Log a new query message entry
-        :param message: str: The message to be logged
-        :param nick: str: Nickname of the message sender
+
+        Args:
+            message(str): The message to be logged
+            nick(str):    IRC Nick of the message sender
         """
         if nick:
             return super().log_message(nick, message)
@@ -136,8 +152,10 @@ class IRCQueryLogger(IRCChannelLogger):
     def log_action(self, action, nick=None):
         """
         Log a new channel action entry
-        :param action: str: The action to be logged
-        :param nick: str: The nick of the user who is being query logged
+
+        Args:
+            action(str): The action to be logged
+            nick(str):   The IRC Nick of the user who is being query logged
         """
         if nick:
             return super().log_action(nick, action)

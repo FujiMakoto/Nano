@@ -5,6 +5,9 @@ from modules.exceptions import ModuleDisabledError
 
 class Datetime():
     def __init__(self):
+        """
+        Initialize a new Datetime instance
+        """
         # Get the module configuration
         self.config  = configparser.ConfigParser()
         self.config.read('modules/Datetime/module.cfg')
@@ -20,14 +23,18 @@ class Datetime():
     def suffix(day):
         """
         Get the English suffix for the specified day of the month
-        :return: str
+
+        Returns:
+            str
         """
         return 'th' if 11 <= day <= 13 else {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
 
     def day(self):
         """
         Get the day of the month
-        :return: str
+
+        Returns:
+            str
         """
         # Is the module enabled?
         if not self.enabled:
@@ -39,7 +46,9 @@ class Datetime():
     def day_of_week(self):
         """
         Get the day of the week
-        :return: str
+
+        Returns:
+            str
         """
         # Is the module enabled?
         if not self.enabled:
@@ -50,7 +59,9 @@ class Datetime():
     def month(self):
         """
         Get the current month
-        :return: str
+
+        Returns:
+            str
         """
         # Is the module enabled?
         if not self.enabled:
@@ -61,7 +72,9 @@ class Datetime():
     def year(self):
         """
         Get the current year
-        :return: str
+
+        Returns:
+            str
         """
         # Is the module enabled?
         if not self.enabled:
@@ -72,8 +85,12 @@ class Datetime():
     def time(self, timezone=False):
         """
         Get the current time in the format HH:MM AM/PM
-        :param timezone: boolean: Include the timezone at the end of the response
-        :return: str
+
+        Args:
+            timezone(bool): Include the timezone at the end of the response
+
+        Returns:
+            str
         """
         # Is the module enabled?
         if not self.enabled:
@@ -91,8 +108,12 @@ class Datetime():
     def how_long_ago(self, epoch):
         """
         Get the difference from the provided epoch to now in days or years
-        :param epoch: The Unix timestamp to subtract from
-        :return: str
+
+        Args:
+            epoch(int or str): The Unix timestamp to subtract from
+
+        Returns:
+            str
         """
         # Is the module enabled?
         if not self.enabled:

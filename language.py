@@ -31,9 +31,13 @@ class Language:
     def get_reply(self, source, message):
         """
         Get a response to the specified message
-        :param source: str: The host this message is coming from
-        :param message: str: The message to get a response to
-        :return: str|None
+
+        Args:
+            source(str):  The host this message is coming from
+            message(str): The message to get a response to
+
+        Returns:
+            str or None
         """
         # Parse our message
         message = self.parse_message(source, message)
@@ -53,17 +57,21 @@ class Language:
         # Return our response
         return reply
 
-    def parse_message(self, source, message, strip_controlchars=True, parse_directed=True):
+    def parse_message(self, source, message, parse_directed=True, strip_control_chars=True):
         """
         Clean our message and ready it for language processing
-        :param source: str: The host this message is coming from
-        :param message: The message to parse
-        :param strip_controlchars: bool: Strip control characters
-        :param parse_directed: bool: Parse whether or not the message was directed at us
-        :return: str: The parsed message
+
+        Args:
+            source(str):               The host this message is coming from
+            message(str):              The message to parse
+            parse_directed(bool):      Parse whether or not the message was directed at us
+            strip_control_chars(bool): Strip control characters
+
+        Returns:
+            str: The parsed message
         """
         # Strip control characters (color, bold, etc.) from our message
-        if strip_controlchars:
+        if strip_control_chars:
             message = re.sub("\x03(?:\d{1,2}(?:,\d{1,2})?)?", "", message, 0, re.UNICODE)
 
         # Parse whether or not this message was directed at us
@@ -78,23 +86,29 @@ class Language:
     def set_name(self, source, name):
         """
         Set the name for the specified host
-        :param source: str: The host this message is coming from
-        :param name: The name
+
+        Args:
+            source(str): The host this message is coming from
+            name(str):   The name to set
         """
         self.rs.set_uservar(source, "name", name)
 
     def set_directed(self, source, directed=True):
         """
         Set the directed flag for sent messages
-        :param source: str: The host this message is coming from
-        :param directed: bool: Whether or not this message was directed at us
+
+        Args:
+            source(str):    The host this message is coming from
+            directed(bool): Whether or not this message was directed at us
         """
         self.rs.set_uservar(source, "directed", directed)
 
     def rivescript(self):
         """
         Return our RiveScript instance
-        :return: RiveScript
+
+        Returns:
+            RiveScript
         """
         return self.rs
 
@@ -102,7 +116,9 @@ class Language:
     def config():
         """
         Static method that returns the logger configuration
-        :return: ConfigParser
+
+        Returns:
+            ConfigParser
         """
         config = ConfigParser()
         config.read("config/language.cfg")
