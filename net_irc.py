@@ -29,7 +29,7 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
             server(str):   The server to connect to
             port(int):     The server port number
         """
-        super().__init__(self, [(server, port)], nickname, nickname)
+        irc.bot.SingleServerIRCBot.__init__(self, [(server, port)], nickname, nickname)
         self.channel = channel
         self.lang    = Language()
 
