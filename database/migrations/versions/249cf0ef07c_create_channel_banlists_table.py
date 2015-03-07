@@ -20,11 +20,12 @@ def upgrade():
     op.create_table(
         'channel_banlists',
         sa.Column('id', sa.Integer, primary_key=True),
-        sa.Column('channel_id', sa.Integer, nullable=False),
+        sa.Column('channel_id', sa.Integer, sa.ForeignKey('channels.id', ondelete="CASCADE", onupdate="CASCADE"),
+                  nullable=False),
         sa.Column('nick', sa.String(50)),
         sa.Column('hostmask', sa.String(500), nullable=False),
         sa.Column('reason', sa.String(255)),
-        sa.Column('banned_by_user_id', sa.Integer),
+        sa.Column('banned_by_user_id', sa.Integer, sa.ForeignKey('users.id')),
         sa.Column('ban_length', sa.Integer),
         sa.Column('expires', sa.DateTime)
     )

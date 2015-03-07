@@ -20,7 +20,8 @@ def upgrade():
     op.create_table(
         'channel_topics',
         sa.Column('id', sa.Integer, primary_key=True),
-        sa.Column('channel_id', sa.Integer, nullable=False),
+        sa.Column('channel_id', sa.Integer, sa.ForeignKey('channels.id', ondelete="CASCADE", onupdate="CASCADE"),
+                  nullable=False),
         sa.Column('message', sa.String(1000), nullable=False),
         sa.Column('enabled', sa.Boolean, default=True),
         sa.Column('priority', sa.SmallInteger, default=0),

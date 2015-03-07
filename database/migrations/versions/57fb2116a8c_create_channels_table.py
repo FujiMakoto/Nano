@@ -20,7 +20,8 @@ def upgrade():
     op.create_table(
         'channels',
         sa.Column('id', sa.Integer, primary_key=True, autoincrement=True),
-        sa.Column('network_id', sa.Integer, nullable=False),
+        sa.Column('network_id', sa.Integer, sa.ForeignKey('networks.id', ondelete="CASCADE", onupdate="CASCADE"),
+                  nullable=False),
         sa.Column('channel_password', sa.String(255)),
         sa.Column('xop_level', sa.SmallInteger, default=0),
         sa.Column('manage_topic', sa.Boolean, default=False),
