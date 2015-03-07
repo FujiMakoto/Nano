@@ -20,6 +20,7 @@ class Channel(Base):
     id = Column(Integer, primary_key=True)
     network_id = Column(ForeignKey('networks.id'), nullable=False)
     channel_password = Column(String(255))
+    name = Column(String(50))
     xop_level = Column(SmallInteger)
     manage_topic = Column(Boolean)
     topic_separator = Column(String(10))
