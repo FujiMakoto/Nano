@@ -29,6 +29,7 @@ def upgrade():
         sa.Column('topic_separator', sa.String(10), default='#'),
         sa.Column('topic_mode', sa.String(20), default='STATIC'),
         sa.Column('topic_max', sa.SmallInteger),
+        sa.Column('log', sa.Boolean, default=False),
         sa.Column('autojoin', sa.Boolean)
     )
 

@@ -21,4 +21,4 @@ class User(Base):
     email = Column(String(255))
     nick = Column(String(50), nullable=False)
     password = Column(String(60), nullable=False)
-    is_admin = Column(Boolean)
+    is_admin = Column(Boolean, default=False)
