@@ -1,4 +1,5 @@
 irc=12.0
 rivescript=1.6
+voluptuous=0.8.7
 alembic=0.7.4
 bcrypt>=1.1.0,<2.0.0
