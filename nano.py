@@ -1,8 +1,11 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.4
 """
 net_irc.py: Establish an IRC connection
 """
 from net_irc import NanoIRC
+from modules import Network, Channel
+# from database import DbSession
+# from database.models import Network, Channel
 
 __author__     = "Makoto Fujikawa"
 __copyright__  = "Copyright 2015, Makoto Fujikawa"
@@ -14,16 +17,18 @@ class Nano:
 
     @staticmethod
     def irc():
-        irc_config = NanoIRC.load_config()
+        # Fetch our autojoin networks
+        net = Network()
+        networks = net.all()
 
-        for network in irc_config.sections():
-            # Get our configuration for this network
-            config = irc_config[network]
-            """:type : configparser.ConfigParser"""
+        for network in networks:
+            # Fetch our autojoin channels
+            chan = Channel()
+            channels = chan.all(network)
 
-            # If it's active and we should automatically connect to it..
-            if config.getboolean(network, "Active") and config.getboolean(network, "AutoConnect"):
-                nano_irc = NanoIRC(config["Channels"], config["Nick"], config["Server"], int(config["Port"]))
+            # @TODO: Add multi-channel support
+            for channel in channels:
+                nano_irc = NanoIRC(channel.name, network.nick, network.host, network.port)
                 nano_irc.start()
 
 

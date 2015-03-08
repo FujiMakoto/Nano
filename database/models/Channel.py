@@ -26,6 +26,7 @@ class Channel(Base):
     topic_separator = Column(String(10))
     topic_mode = Column(String(20))
     topic_max = Column(SmallInteger)
+    log = Column(Boolean)
     autojoin = Column(Boolean)
 
     network = relationship('Network')
