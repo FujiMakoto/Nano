@@ -2,9 +2,9 @@ from database import DbSession
 from database.models import Network as NetworkModel
 from .exceptions import *
 
-__author__ = "Makoto Fujikawa"
-__copyright__ = "Copyright 2015, Makoto Fujikawa"
-__version__ = "1.0.0"
+__author__     = "Makoto Fujikawa"
+__copyright__  = "Copyright 2015, Makoto Fujikawa"
+__version__    = "1.0.0"
 __maintainer__ = "Makoto Fujikawa"
 
 
@@ -12,7 +12,6 @@ class Network:
     """
     Create, modify, delete and retrieve IRC Networks from the database
     """
-
     def __init__(self):
         """
         Initialize a new Network instance
