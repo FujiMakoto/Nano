@@ -1,8 +1,8 @@
-class UserAlreadyAuthenticatedError(Exception):
+class UserAlreadyExistsError(Exception):
     pass
 
 
-class UserAlreadyExistsError(Exception):
+class UserDoesNotExistsError(Exception):
     pass
 
 

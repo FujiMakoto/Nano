@@ -2,7 +2,6 @@ import bcrypt
 from voluptuous import Schema, Required, All, Length, Range, MultipleInvalid, Invalid
 from validators import Email
 from .exceptions import *
-from modules.Auth import AuthSession
 from database import DbSession
 from database.models import User as UserModel
 
@@ -15,7 +14,6 @@ __maintainer__ = "Makoto Fujikawa"
 class User:
     def __init__(self, network=None, client_hostmask=None):
         self.dbs = DbSession()
-        self.auth_session = AuthSession()
         self.network = network
         self.client_hostmask = client_hostmask
 
@@ -59,10 +57,6 @@ class User:
             })
         except MultipleInvalid as e:
             raise RegistrationValidationError(e)
-
-        # Make sure we're not already logged into an existing account
-        if self.auth_session.exists(self.network.id, self.client_hostmask):
-            raise UserAlreadyAuthenticatedError("Attempted to register a new account while the user is logged in")
 
         # Make sure an account with this e-mail doesn't already exist
         if self.exists(email):
