@@ -1,6 +1,5 @@
 import bcrypt
-from voluptuous import Schema, Required, All, Length, Range, MultipleInvalid, Invalid
-from validators import Email
+from .validators import UserValidators
 from .exceptions import *
 from database import DbSession
 from database.models import User as UserModel
@@ -14,6 +13,7 @@ __maintainer__ = "Makoto Fujikawa"
 class User:
     def __init__(self, network=None, client_hostmask=None):
         self.dbs = DbSession()
+        self.validate = UserValidators()
         self.network = network
         self.client_hostmask = client_hostmask
 
@@ -43,20 +43,7 @@ class User:
             raise BadInstantiationError("User must be instantiated with network and client_hostmask to use this method")
 
         # Validate our user input
-        schema = Schema({
-            Required('email'): All(str, Email(), Length(max=255)),
-            Required('nick'): All(str, Length(max=50)),
-            Required('password'): All(str, Length(min=6, max=1024))
-        })
-
-        try:
-            schema({
-                'email': email,
-                'nick': nick,
-                'password': password
-            })
-        except MultipleInvalid as e:
-            raise RegistrationValidationError(e)
+        self.validate.registration(email=email, nick=nick, password=password)
 
         # Make sure an account with this e-mail doesn't already exist
         if self.exists(email):
