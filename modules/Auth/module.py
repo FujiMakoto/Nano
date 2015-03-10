@@ -13,6 +13,9 @@ __maintainer__ = "Makoto Fujikawa"
 
 class Auth:
     def __init__(self):
+        """
+        Initialize a new Auth instance
+        """
         self.session = AuthSession()
 
     def check(self, hostmask, network):
@@ -144,7 +147,7 @@ class AuthSession:
         Return whether or not an active session currently exists for the specified hostmask
 
         Args:
-            network(database.models.Network): The database ID of the current network
+            network(database.models.Network): The network we are checking
             hostmask(str): Hostmask the session should be mapped to
 
         Returns:
@@ -160,7 +163,7 @@ class AuthSession:
         Get the session for this hostmask, if one exists, otherwise return False
 
         Args:
-            network(database.models.Network): The database ID of the current network
+            network(database.models.Network): The network we are retrieving a session from
             hostmask(str): Hostmask the session should be mapped to
 
         Returns:
@@ -176,13 +179,16 @@ class AuthSession:
         Get the user ID for this hostmask's session, if one exists, otherwise return False
 
         Args:
-            network(database.models.Network): The database ID of the current network
+            network(database.models.Network): The network we are retrieving a session from
             hostmask(str): Hostmask the session should be mapped to
 
         Returns:
             int or False
         """
         session = self.get(network, hostmask)
+
+        if not session:
+            return False
 
         return int(session.user_id)
 
@@ -191,8 +197,8 @@ class AuthSession:
         Create a new user session after successfully authenticating a user
 
         Args:
-            user(database.models.User): The database ID of the authenticated user
-            network(database.models.Network): The database ID of the current network
+            user(database.models.User): The authenticated user
+            network(database.models.Network): The network we are authenticating on
             hostmask(str): Hostmask the session should be mapped to
             expires(DateTime, optional): The date and time this session should expire from inactivity
         """
@@ -206,9 +212,9 @@ class AuthSession:
         Destroy an authenticated users session (if one exists), or clear out ALL active session without any filters
 
         Args:
-            user(database.models.User, optional): The database ID of the authenticated user
-            network(int, optional): The database ID of the current network
-            hostmask(str, optional):   Hostmask the session should be mapped to
+            user(database.models.User, optional): The authenticated user
+            network(int, optional): The network we are destroying a session out on
+            hostmask(str, optional): Hostmask the session should be mapped to
         """
         # Set up a new user session query
         query = self.dms.query(UserSession)
