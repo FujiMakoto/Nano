@@ -3,7 +3,7 @@ from database import MemorySession
 from database.models import UserSession
 from .exceptions import *
 from ..User.exceptions import UserDoesNotExistsError
-from ..User import User
+from ..User import User, UserValidators
 
 __author__     = "Makoto Fujikawa"
 __copyright__  = "Copyright 2015, Makoto Fujikawa"
@@ -17,6 +17,7 @@ class Auth:
         Initialize a new Auth instance
         """
         self.session = AuthSession()
+        self.validate_user = UserValidators()
 
     def check(self, hostmask, network):
         """
@@ -68,12 +69,16 @@ class Auth:
 
         Raises:
             AlreadyAuthenticatedError: The user is already logged in to an existing account
+            ValidationError: The format of the provided login credentials is not valid
             UserDoesNotExistsError: The account we are attempting to authenticate to does not exist
             InvalidPasswordError: The account we are attempting to authenticate to exists, but our password is invalid
         """
         # Make sure we're not already logged in
         if self.session.exists(network, hostmask):
             raise AlreadyAuthenticatedError("Cannot authenticate a user with an existing active login session")
+
+        # Validate our input
+        self.validate_user.login(email=email, password=password)
 
         # Retrieve the user we are attempting to authenticate as
         user = User().get(email)
@@ -89,7 +94,8 @@ class Auth:
         if not valid_login:
             raise InvalidPasswordError("The supplied password did not match")
 
-        # Create a new login session
+        # Create a new login session and destroy any previous sessions for this user on this network
+        self.session.destroy(user=user, network=network)
         return self.session.create(user, network, hostmask)
 
     def login(self, email, hostmask, network):
