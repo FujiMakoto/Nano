@@ -26,9 +26,9 @@ class Nano:
             chan = Channel()
             channels = chan.all(network)
 
-            # @TODO: Add multi-channel support
+            # @TODO: Add proper multi-channel support
             for channel in channels:
-                nano_irc = NanoIRC(channel.name, network.nick, network.host, network.port)
+                nano_irc = NanoIRC(network, channel)
                 nano_irc.start()
 
 

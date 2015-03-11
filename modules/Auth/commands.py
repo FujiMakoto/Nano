@@ -24,9 +24,7 @@ class AuthCommands:
         try:
             self.auth.attempt(args[0], args[1], str(source), irc.network)
             response = "You have successfully logged in as <strong>%s</strong>" % args[0]
-            response = irc.html_to_control_codes(response)
-            irc.connection.notice(source.nick, response)
-            return None
+            return {'private_notice': response}
         except IndexError:
             return "You must specify an email and password to log in"
         except AlreadyAuthenticatedError as e:
