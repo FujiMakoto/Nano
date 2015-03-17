@@ -11,13 +11,10 @@ __version__    = "1.0.0"
 __maintainer__ = "Makoto Fujikawa"
 
 
-class IRCChannelLogger:
-    """
-    Writes channel messages and actions to the IRC channels logfile
-    """
+class _IRCLogger():
     def __init__(self, network, channel):
         """
-        Initialize a new IRC Channel Logger instance
+        Initialize a new IRC Logger instance
 
         Args:
             network(str): The IRC network name
@@ -25,10 +22,7 @@ class IRCChannelLogger:
         """
         # Load the logger configuration file
         self.config = self.config()
-
-        # Load the IRC section of our configuration
-        if self.config.has_section('IRC'):
-            self.config = self.config['IRC']
+        self.config = self.config['IRC']
 
         # Set our network and channel
         self.network = network
@@ -37,16 +31,8 @@ class IRCChannelLogger:
         # Set the default timestamp format
         self.timestamp_format = self.config['TimestampFormat']
 
-        # Set our base path
-        self.base_path    = str(self.config['LogPath']).rstrip("/") + "/%s/" % self.network
-        self.logfile_name = self.channel + ".log"
-        self.logfile_path = self.base_path + self.logfile_name
-
-        # Make sure our logfile directory exists
-        os.makedirs(self.base_path, 0o0750, True)
-
-        # Open the logfile in append+read mode
-        self.logfile = open(self.logfile_path, "a+")
+        # A logfile should be defined in the extending classes
+        self.logfile = None
 
     def log_message(self, nick, message):
         """
@@ -68,6 +54,38 @@ class IRCChannelLogger:
             action(str): The action to be logged
         """
         log_entry = self.get_timestamp() + " * %s %s" % (nick, action)
+        self.logfile.write(log_entry + "\n")
+
+    def log_join(self, source):
+        """
+        Log a new channel join entry
+
+        Args:
+            source: Connection source
+        """
+        log_entry = self.get_timestamp() + "{nick} ({hostmask}) has joined".format(nick=source.nick, hostmask=source)
+        self.logfile.write(log_entry + "\n")
+
+    def log_part(self, nick, message=None):
+        """
+        Log a channel part entry
+
+        Args:
+            nick(str): IRC Nick of the parting user
+            message(str or None): The users parting message
+        """
+        log_entry = self.get_timestamp() + "{nick} has left ({message})".format(nick=nick, message=message or "")
+        self.logfile.write(log_entry + "\n")
+
+    def log_quit(self, nick, message=None):
+        """
+        Log a channel part entry
+
+        Args:
+            nick(str): IRC Nick of the quitting user
+            message(str or None): The users quit message
+        """
+        log_entry = self.get_timestamp() + "{nick} has quit ({message})".format(nick=nick, message=message or "")
         self.logfile.write(log_entry + "\n")
 
     def get_timestamp(self, timestamp_format=None):
@@ -99,7 +117,33 @@ class IRCChannelLogger:
         return config
 
 
-class IRCQueryLogger(IRCChannelLogger):
+class IRCChannelLogger(_IRCLogger):
+    """
+    Writes channel messages and actions to the IRC channels logfile
+    """
+    def __init__(self, network, channel):
+        """
+        Initialize a new IRC Channel Logger instance
+
+        Args:
+            network(str): The IRC network name
+            channel(str): The channel being logged
+        """
+        super().__init__(network, channel)
+
+        # Set our base path
+        self.base_path    = str(self.config['LogPath']).rstrip("/") + "/%s/" % self.network.name
+        self.logfile_name = self.channel.name + ".log"
+        self.logfile_path = self.base_path + self.logfile_name
+
+        # Make sure our logfile directory exists
+        os.makedirs(self.base_path, 0o0750, True)
+
+        # Open the logfile in append+read mode
+        self.logfile = open(self.logfile_path, "a+")
+
+
+class IRCQueryLogger(_IRCLogger):
     """
     Writes query messages and actions to the IRC query logfile
     """
@@ -111,22 +155,11 @@ class IRCQueryLogger(IRCChannelLogger):
             network(str): The IRC network name
             nick(str):    The IRC Nick of the user who is being query logged
         """
-        # Load the logger configuration file
-        self.config = self.config()
-
-        # Load the IRC section of our configuration
-        if self.config.has_section('IRC'):
-            self.config = self.config['IRC']
-
-        # Set our network and nick
-        self.network = network
-        self.nick    = nick
-
-        # Set the default timestamp format
-        self.timestamp_format = self.config['TimestampFormat']
+        super().__init__(network, nick)
+        self.nick = nick
 
         # Set our base path
-        self.base_path    = str(self.config['LogPath']).rstrip("/") + "/%s/queries/" % self.network
+        self.base_path    = str(self.config['LogPath']).rstrip("/") + "/%s/queries/" % self.network.name
         self.logfile_name = self.nick + ".log"
         self.logfile_path = self.base_path + self.logfile_name
 
