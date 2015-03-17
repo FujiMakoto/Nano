@@ -4,6 +4,8 @@ net_irc.py: Establish a new IRC connection
 """
 import re
 import shlex
+import logging
+from ast import literal_eval
 from html.parser import unescape
 from configparser import ConfigParser
 import irc.bot
@@ -11,6 +13,7 @@ import irc.strings
 import irc.events
 from modules import Commander
 from language import Language
+from logger import IRCChannelLogger, IRCQueryLogger
 
 __author__     = "Makoto Fujikawa"
 __copyright__  = "Copyright 2015, Makoto Fujikawa"
@@ -22,6 +25,7 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
     """
     Establishes a new connection to the configured IRC server
     """
+
     def __init__(self, network, channel):
         """
         Initialize a new Nano IRC instance
@@ -33,16 +37,31 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
             port(int):     The server port number
         """
         irc.bot.SingleServerIRCBot.__init__(self, [(network.host, network.port)], network.nick, network.nick)
+        # Load our configuration
+
+        # Setup
         self.network = network
         self.channel = channel
-        self.lang    = Language()
+        self.lang = Language()
         self.command = Commander()
+        self.log = logging.getLogger('nano.irc')
 
-        # Channel command pattern
+        # Network feature list
+        self.network_features = {}
+
+        # Set up our channel logger (if enabled)
+        self.channel_logger = False
+
+        if self.channel.log:
+            self.log.info('Setting up channel logging for ' + channel.name)
+            self.channel_logger = IRCChannelLogger(network, channel)
+
+        # Patterns
         self.command_pattern = re.compile("^>>>( )?[a-zA-Z]+")
+        self.response_pattern = re.compile("{'(.+)':\s?'(.+)'}")
 
     @staticmethod
-    def load_config(network=None):
+    def config(network=None):
         """
         Static method that returns the logger configuration
 
@@ -57,8 +76,26 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
 
         return config
 
-    @staticmethod
-    def html_to_control_codes(message):
+    def _execute_command(self, command_string, source, public=True):
+        """
+        Execute an IRC command
+        """
+        # Strip the trigger and split the command string
+        command_string = command_string.lstrip(">>>").strip()
+        command_string = shlex.split(command_string)
+        self.log.info('Executing command ' + command_string[0])
+
+        # Attempt to execute the command
+        # return self.command.execute(command_string[0], command_string[1:], self, self.network, self.channel, source)
+        try:
+            reply = self.command.execute(command_string[0], command_string[1:], self, source, public)
+            return reply
+        except Exception as e:
+            self.log.warn('Exception thrown when executing command "{cmd}": {exception}'
+                          .format(cmd=command_string[0], exception=str(e)))
+            return
+
+    def _parse_message(self, message):
         """
         Replace accepted HTML formatting with control codes and strip any excess HTML that remains
 
@@ -68,6 +105,7 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         Returns:
             str: The IRC formatted string
         """
+        self.log.debug('Parsing message response: ' + message)
         # Parse bold text
         message = re.sub("(<strong>|<\/strong>)", "\x02", message, 0, re.UNICODE)
 
@@ -77,16 +115,17 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         # Unescape any HTML entities
         message = unescape(message)
 
+        self.log.debug('Returning parsed message: ' + message)
         return message
 
-    def deliver_messages(self, messages, nick, channel, private=False):
+    def _deliver_messages(self, messages, source, channel, public=True):
         # Make sure we have a list of messages to iterate through
         if not isinstance(messages, list):
             messages = [messages]
 
         # Are we returning to a public channel or query by default?
-        if private:
-            default_destination = nick
+        if not public:
+            default_destination = source.nick
         else:
             default_destination = channel.name
 
@@ -95,36 +134,141 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
             if isinstance(message, dict):
                 # Split our destination and parse our message
                 destination, message = message.popitem()
-                message = self.html_to_control_codes(message)
+
+                # Call a requested command and loop back our response
+                if destination == "command":
+                    reply = self._execute_command(message, source, public)
+                    return self._deliver_messages(reply, source.nick, channel.name)
+
+                message = self._parse_message(message)
 
                 # Where are we sending the message?
                 if destination == "private":
-                    self.connection.privmsg(nick, message)
+                    self.connection.privmsg(source.nick, message)
                 elif destination == "private_notice":
-                    self.connection.notice(nick, message)
+                    self.connection.notice(source.nick, message)
+                elif destination == "private_action":
+                    self.connection.action(source.nick, message)
+                elif destination == "public_action":
+                    self.connection.action(channel.name, message)
                 elif destination == "public_notice":
                     self.connection.notice(channel.name, message)
                 elif destination == "public":
                     self.connection.privmsg(channel.name, message)
+                elif destination == "action":
+                    self.connection.action(default_destination, message)
                 else:
                     self.connection.privmsg(default_destination, message)
             else:
-                message = self.html_to_control_codes(message)
+                message = self._parse_message(message)
                 self.connection.privmsg(default_destination, message)
+
+    ################################
+    # Numeric / Response Events    #
+    ################################
 
     def on_nicknameinuse(self, c, e):
         """
         If our nick is in use on connect, append an underscore to it and try again
         """
         # TODO: Ghost using nickserv if possible
-        c.nick(c.get_nickname() + "_")
+        nick = c.get_nickname() + "_"
+        self.log.info('Nickname {nick} in use, retrying with {new_nick}'.format(nick=c.get_nickname(), new_nick=nick))
+        c.nick(nick)
+
+    def on_serviceinfo(self, c, e):
+        pass
 
     def on_welcome(self, c, e):
         """
         Join our specified channel once we get a welcome to the server
         """
         # TODO: Multi-channel support
+        self.log.info('Joining channel: ' + self.channel.name)
         c.join(self.channel.name)
+
+    def on_featurelist(self, c, e):
+        # TODO
+        # feature_pattern = re.compile("^([A-Z]+)(=(\S+))?$")
+        pass
+
+    def on_cannotsendtochan(self, c, e):
+        pass
+
+    def on_toomanychannels(self, c, e):
+        pass
+
+    def on_erroneusnickname(self, c, e):
+        pass
+
+    def on_unavailresource(self, c, e):
+        # Release nick from nickserv
+        pass
+
+    def on_channelisfull(self, c, e):
+        # Wait XX seconds and attempt to join
+        pass
+
+    def on_keyset(self, c, e):
+        pass
+
+    def on_badchannelkey(self, c, e):
+        pass
+
+    def on_inviteonlychan(self, c, e):
+        # Knock knock
+        pass
+
+    def on_bannedfromchan(self, c, e):
+        pass
+
+    def on_banlistfull(self, c, e):
+        pass
+
+    def on_chanoprivsneeded(self, c, e):
+        pass
+
+    ################################
+    # Protocol Events              #
+    ################################
+
+    def on_pubmsg(self, c, e):
+        """
+        Handle channel messages
+        """
+        # Log the message
+        if self.channel_logger:
+            self.log.debug('Logging channel message from ' + e.source.nick)
+            self.channel_logger.log_message(e.source.nick, e.arguments[0])
+
+        # Get our hostmask to use as our name
+        source = str(e.source).split("@", 1)
+        self.lang.set_name(source[1], e.source.nick)
+
+        # Are we trying to call a command directly?
+        if self.command_pattern.match(e.arguments[0]):
+            self.log.info('Acknowledging public command request from ' + e.source.nick)
+            reply = self._execute_command(e.arguments[0], e.source, True)
+        else:
+            self.log.debug('Querying language engine for a response to ' + e.source.nick)
+            raw_reply = self.lang.get_reply(source[1], e.arguments[0])
+            try:
+                reply = literal_eval(raw_reply)
+            except (SyntaxError, ValueError) as exception:
+                self.log.debug('Anticipated exception caught when requesting the response: ' + str(exception))
+                reply = raw_reply
+
+        if reply:
+            self.log.debug('Delivering response messages')
+            self._deliver_messages(reply, e.source, self.channel)
+        else:
+            self.log.debug('No response received')
+
+    def on_action(self, c, e):
+        pass
+
+    def on_pubnotice(self, c, e):
+        pass
 
     def on_privmsg(self, c, e):
         """
@@ -136,49 +280,45 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
 
         # Are we trying to call a command directly?
         if self.command_pattern.match(e.arguments[0]):
-            reply = self.execute_command(e.arguments[0], e.source, False)
+            self.log.info('Acknowledging private command request from ' + e.source.nick)
+            reply = self._execute_command(e.arguments[0], e.source, False)
         else:
-            reply = self.lang.get_reply(source[1], e.arguments[0])
+            self.log.debug('Querying language engine for a response to ' + e.source.nick)
+            raw_reply = self.lang.get_reply(source[1], e.arguments[0])
+            try:
+                reply = literal_eval(raw_reply)
+            except (SyntaxError, ValueError) as exception:
+                self.log.debug('Anticipated exception caught when requesting the response: ' + str(exception))
+                reply = raw_reply
 
         if reply:
-            # Deliver our messages
-            self.deliver_messages(reply, e.source.nick, self.channel, True)
-
-    def on_pubmsg(self, c, e):
-        """
-        Handle channel messages
-        """
-        # Get our hostmask to use as our name
-        source = str(e.source).split("@", 1)
-        self.lang.set_name(source[1], e.source.nick)
-
-        # Are we trying to call a command directly?
-        if self.command_pattern.match(e.arguments[0]):
-            reply = self.execute_command(e.arguments[0], e.source, True)
+            self.log.debug('Delivering response messages')
+            self._deliver_messages(reply, e.source, self.channel, False)
         else:
-            reply = self.lang.get_reply(source[1], e.arguments[0])
+            self.log.info(e.source.nick + ' sent me a query I didn\'t know how to respond to')
 
-        if reply:
-            # Deliver our messages
-            self.deliver_messages(reply, e.source.nick, self.channel)
+    def on_privnotice(self, c, e):
+        pass
+
+    def on_join(self, c, e):
+        pass
+
+    def on_part(self, c, e):
+        pass
 
     def on_quit(self, c, e):
+        """
+        Handle channel exits
+        """
         # TODO: Clear login sessions
-        print(e.source.nick + " has quit!")
+        if self.channel_logger:
+            self.log.debug('Logging channel quit from ' + e.source.nick)
+            self.channel_logger.log_quit(e.source.nick, e.arguments[0])
 
-    def execute_command(self, command_string, source, public=True):
-        """
-        Execute an IRC command
-        """
-        # Strip the trigger and split the command string
-        command_string = command_string.lstrip(">>>").strip()
-        command_string = shlex.split(command_string)
+    def on_kick(self, c, e):
+        pass
 
-        # Attempt to execute the command
-        #return self.command.execute(command_string[0], command_string[1:], self, self.network, self.channel, source)
-        try:
-            reply = self.command.execute(command_string[0], command_string[1:], self, source, public)
-            return reply
-        except Exception as e:
-            print(str(e))
-            return
+
+class IRCFeatureList:
+    def __init__(self):
+        pass
