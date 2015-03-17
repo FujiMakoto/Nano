@@ -144,23 +144,32 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
 
                 # Where are we sending the message?
                 if destination == "private":
+                    self.log.info('Sending query to ' + source.nick)
                     self.connection.privmsg(source.nick, message)
                 elif destination == "private_notice":
+                    self.log.info('Sending private notice to ' + source.nick)
                     self.connection.notice(source.nick, message)
                 elif destination == "private_action":
+                    self.log.info('Sending query action to ' + source.nick)
                     self.connection.action(source.nick, message)
                 elif destination == "public_action":
+                    self.log.info('Sending action to ' + channel.name)
                     self.connection.action(channel.name, message)
                 elif destination == "public_notice":
+                    self.log.info('Sending notice to ' + channel.name)
                     self.connection.notice(channel.name, message)
                 elif destination == "public":
+                    self.log.info('Sending message to ' + channel.name)
                     self.connection.privmsg(channel.name, message)
                 elif destination == "action":
+                    self.log.info('Sending action to ' + channel.name)
                     self.connection.action(default_destination, message)
                 else:
+                    self.log.info('Sending message to ' + default_destination)
                     self.connection.privmsg(default_destination, message)
             else:
                 message = self._parse_message(message)
+                self.log.info('Sending message to ' + default_destination)
                 self.connection.privmsg(default_destination, message)
 
     ################################
