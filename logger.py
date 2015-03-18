@@ -13,6 +13,9 @@ __maintainer__ = "Makoto Fujikawa"
 
 
 class _IRCLogger():
+    """
+    Base IRC logger class
+    """
     def __init__(self, network, channel, enabled=True):
         """
         Initialize a new IRC Logger instance
@@ -20,7 +23,7 @@ class _IRCLogger():
         Args:
             network(database.models.Network): The IRC network name
             channel(database.models.Channel): The channel being logged
-            enabled(bool): Enable / disable logging
+            enabled(bool): Enable / disable logging. Defaults to True
         """
         # Load the logger configuration file
         self.config  = self.config()
@@ -54,114 +57,12 @@ class _IRCLogger():
         self.debug_log.info('Disabling channel logging for ' + self.channel.name)
         self.enabled = False
 
-    def log_message(self, nick, message):
-        """
-        Log a message entry
-
-        Args:
-            nick(str): The clients IRC nick
-            message(str): The message to be logged
-        """
-        # Make sure logging is enabled
-        if not self.enabled:
-            return False
-
-        self.debug_log.debug('Logging message from ' + nick)
-
-        log_entry = self.get_timestamp() + " <%s> %s" % (nick, message)
-        self.logfile.write(log_entry + "\n")
-
-    def log_action(self, nick, action):
-        """
-        Log an action entry
-
-        Args:
-            nick(str): The clients IRC nick
-            action(str): The action to be logged
-        """
-        # Make sure logging is enabled
-        if not self.enabled:
-            return False
-
-        self.debug_log.debug('Logging action from ' + nick)
-
-        log_entry = self.get_timestamp() + " * %s %s" % (nick, action)
-        self.logfile.write(log_entry + "\n")
-
-    def log_notice(self, nick, message):
-        """
-        Log a notice entry
-
-        Args:
-            nick(str): The clients IRC nick
-            message(str): The message to be logged
-        """
-        # Make sure logging is enabled
-        if not self.enabled:
-            return False
-
-        self.debug_log.debug('Logging notice from ' + nick)
-
-        log_entry = self.get_timestamp() + " -{nick}/{channel}- {message}"\
-            .format(nick=nick, channel=self.channel.name, message=message)
-        self.logfile.write(log_entry + "\n")
-
-    def log_join(self, source):
-        """
-        Log a join entry
-
-        Args:
-            source(irc.client.NickMask): NickMask of the client
-        """
-        # Make sure logging is enabled
-        if not self.enabled:
-            return False
-
-        self.debug_log.debug('Logging join from {nick} ({hostmask})'.format(nick=source.nick, hostmask=source))
-
-        log_entry = self.get_timestamp() + " {nick} ({hostmask}) has joined".format(nick=source.nick, hostmask=source)
-        self.logfile.write(log_entry + "\n")
-
-    def log_part(self, nick, message=None):
-        """
-        Log a part entry
-
-        Args:
-            nick(str): The clients IRC nick
-            message(str or None): The users parting message
-        """
-        # Make sure logging is enabled
-        if not self.enabled:
-            return False
-
-        self.debug_log.debug('Logging part from ' + nick)
-
-        log_entry = self.get_timestamp() + " {nick} has left ({message})".format(nick=nick, message=message or "")
-        self.logfile.write(log_entry + "\n")
-
-    def log_quit(self, nick, message=None):
-        """
-        Log a quit entry
-
-        Args:
-            nick(str): IRC Nick of the quitting user
-            message(str or None): The users quit message
-        """
-        # Make sure logging is enabled
-        if not self.enabled:
-            return False
-
-        self.debug_log.debug('Logging quit from ' + nick)
-
-        log_entry = self.get_timestamp() + " {nick} has quit ({message})".format(nick=nick, message=message or "")
-        self.logfile.write(log_entry + "\n")
-
     def get_timestamp(self, timestamp_format=None):
         """
         Returns a formatted timestamp
 
         Args:
-            timestamp_format(str): strftime format to use, defaults to format specified in config
+            timestamp_format(str or None): strftime format to use. Defaults to format specified in config
 
         Returns:
             str
@@ -189,6 +90,30 @@ class IRCChannelLogger(_IRCLogger):
     """
     Writes channel messages and actions to the IRC channels logfile
     """
+    MESSAGE = " <{nick}> {message}"
+    ACTION = " * {nick} {message}"
+    NOTICE = " -{nick}/{channel}- {message}"
+    JOIN = " {nick} ({hostmask}) has joined"
+    PART = " {nick} has left ({message})"
+    QUIT = " {nick} has quit ({message})"
+
+    _formatToName = {
+        MESSAGE: 'MESSAGE',
+        ACTION: 'ACTION',
+        NOTICE: 'NOTICE',
+        JOIN: 'JOIN',
+        PART: 'PART',
+        QUIT: 'QUIT',
+    }
+    _nameToFormat = {
+        'MESSAGE': MESSAGE,
+        'ACTION': ACTION,
+        'NOTICE': NOTICE,
+        'JOIN': JOIN,
+        'PART': PART,
+        'QUIT': QUIT,
+    }
+
     def __init__(self, network, channel, enabled=True):
         """
         Initialize a new IRC Channel Logger instance
@@ -211,11 +136,57 @@ class IRCChannelLogger(_IRCLogger):
         # Open the logfile in append+read mode
         self.logfile = open(self.logfile_path, "a+")
 
+    def log(self, log_format, nick, hostmask=None, message=None):
+        """
+        Write a new channel log entry
+
+        Args:
+            log_format(str): The string format to use for the log entry
+            nick(str): The IRC nick of the client
+            hostmask(str or None): The IRC hostmask of the client
+            message(str or None): The message to be logged
+        """
+        # Make sure logging is enabled
+        if not self.enabled:
+            return False
+
+        # Yo dawg
+        self.debug_log.debug('Logging {type} from {nick}'.format(type=self._formatToName[log_format], nick=nick))
+
+        # Format and write the log entry
+        log_entry = log_format.format(nick=nick, hostmask=hostmask or "", message=message or "",
+                                      channel=self.channel.name)
+        self.logfile.write(self.get_timestamp() + log_entry + "\n")
+
 
 class IRCQueryLogger(_IRCLogger):
     """
     Writes query messages and actions to the IRC query logfile
     """
+    MESSAGE = " <{nick}> {message}"
+    ACTION = " * {nick} {message}"
+    NOTICE = " -{nick}/{channel}- {message}"
+    JOIN = " {nick} ({hostmask}) has initiated a new query session"
+    PART = " {nick} has left ({message})"
+    QUIT = " {nick} has quit ({message})"
+
+    _formatToName = {
+        MESSAGE: 'MESSAGE',
+        ACTION: 'ACTION',
+        NOTICE: 'NOTICE',
+        JOIN: 'JOIN',
+        PART: 'PART',
+        QUIT: 'QUIT',
+    }
+    _nameToFormat = {
+        'MESSAGE': MESSAGE,
+        'ACTION': ACTION,
+        'NOTICE': NOTICE,
+        'JOIN': JOIN,
+        'PART': PART,
+        'QUIT': QUIT,
+    }
+
     def __init__(self, network, source, enabled=True):
         """
         Initialize a new IRC Query Logger instance
@@ -223,7 +194,7 @@ class IRCQueryLogger(_IRCLogger):
         Args:
             network(database.models.Network): The IRC network name
             source(irc.client.NickMask): NickMask of the client
-            enabled(bool): Enable / disable logging
+            enabled(bool): Enable / disable logging. Defaults to True
         """
         super().__init__(network, source, enabled)
         self.source = source
@@ -239,99 +210,33 @@ class IRCQueryLogger(_IRCLogger):
         # Open the logfile in append+read mode
         self.logfile = open(self.logfile_path, "a+")
 
-    def log_message(self, message, connection, source=None):
+    def log(self, log_format, connection, source=None, message=None):
         """
-        Log a new query message entry
+        Write a new query log entry
 
         Args:
-            message(str): The message to be logged
-            connection(irc.client.ServerConnection): The IRC server connection we are logging from
+            log_format(str): The string format to use for the log entry
+            connection(irc.client.ServerConnection): The IRC server connection we are logging from.
             source(irc.client.NickMask or None): NickMask of the client (or none if we're logging our own messages)
+            message(str or None): The message to be logged
         """
-        # If no source was given, log a message from ourselves
-        if not source:
-            return super().log_message(connection.get_nickname(), message)
-
-        # Has our hostmask changed since our last session?
-        if source.host != self.source.host:
-            self.log_join(source)
-            self.source = source
-
-        return super().log_message(self.source.nick, message)
-
-    def log_action(self, action, connection, source=None):
-        """
-        Log a new query action entry
-
-        Args:
-            action(str): The action to be logged
-            connection(irc.client.ServerConnection): The IRC server connection we are logging from
-            source(irc.client.NickMask or None): NickMask of the client (or none if we're logging our own messages)
-        """
-        # If no source was given, log an action from ourselves
-        if not source:
-            return super().log_action(connection.get_nickname(), action)
-
-        # Has our hostmask changed since our last session?
-        if source.host != self.source.host:
-            self.log_join(source)
-            self.source = source
-
-        return super().log_action(self.source.nick, action)
-
-    def log_notice(self, message, connection, source=None):
-        """
-        Log a new query notice entry
-
-        Args:
-            message(str): The message to be logged
-            connection(irc.client.ServerConnection): The IRC server connection we are logging from
-            source(irc.client.NickMask or None): NickMask of the client (or none if we're logging our own messages)
-        """
-        # If no source was given, log a notice from ourselves
-        if not source:
-            return super().log_notice(connection.get_nickname(), message)
-
-        # Has our hostmask changed since our last session?
-        if source.host != self.source.host:
-            self.log_join(source)
-            self.source = source
-
-        return super().log_notice(self.source.nick, message)
-
-    def log_join(self, source):
-        """
-        When a new query session is created, log the users hostmask
-
-        Args:
-            source(irc.client.NickMask): NickMask of the client
-        """
-        # Make sure query logging is enabled
+        # Make sure logging is enabled
         if not self.enabled:
             return False
 
-        self.debug_log.debug('New query session from {nick} ({hostmask})'.format(nick=source.nick, hostmask=source))
+        # Are we logging a message from the client or ourselves?
+        if source:
+            self.nick = source.nick
+            self.hostmask = source.host
+        else:
+            self.nick = connection.get_nickname()
+            self.hostmask = "localhost"
 
-        log_entry = self.get_timestamp() + " {nick} ({hostmask}) has initiated a new query session"\
-            .format(nick=source.nick, hostmask=source)
+        # Yo dawg
+        self.debug_log.debug('Logging PRIV_{type} from {nick}'
+                             .format(type=self._formatToName[log_format], nick=self.nick))
 
-        self.logfile.write(log_entry + "\n")
-
-    def log_quit(self, source, message=None):
-        """
-        Log a quit entry
-
-        Args:
-            source(irc.client.NickMask or None): NickMask of the client
-            message(str or None): The users quit message
-        """
-        # Make sure query logging is enabled
-        if not self.enabled:
-            return False
-
-        self.debug_log.debug('Logging query quit from ' + source.nick)
-
-        log_entry = self.get_timestamp() + " {nick} has quit ({message})"\
-            .format(nick=source.nick, message=message or "")
-
-        self.logfile.write(log_entry + "\n")
+        # Format and write the log entry
+        log_entry = log_format.format(nick=self.nick, hostmask=self.hostmask or "", message=message or "",
+                                      channel=self.channel.name)
+        self.logfile.write(self.get_timestamp() + log_entry + "\n")

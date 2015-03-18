@@ -49,8 +49,9 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         # Network feature list
         self.network_features = {}
 
-        # Set up our channel logger (if enabled)
+        # Set up our channel and query loggers
         self.channel_logger = IRCChannelLogger(network, channel, bool(self.channel.log))
+        self.query_loggers  = {}
 
         # Patterns
         self.command_pattern = re.compile("^>>>( )?[a-zA-Z]+")
@@ -153,29 +154,33 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
                     self.connection.action(source.nick, message)
                 elif destination == "public_action":
                     # Channel action
-                    self.channel_logger.log_action(self.connection.get_nickname(), message)
+                    self.channel_logger.log(self.channel_logger.ACTION, self.connection.get_nickname(), message=message)
                     self.log.info('Sending action to ' + channel.name)
                     self.connection.action(channel.name, message)
                 elif destination == "public_notice":
                     # Channel notice
+                    self.channel_logger.log(self.channel_logger.NOTICE, self.connection.get_nickname(), message=message)
                     self.log.info('Sending notice to ' + channel.name)
                     self.connection.notice(channel.name, message)
                 elif destination == "public":
                     # Channel message
-                    self.channel_logger.log_message(self.connection.get_nickname(), message)
+                    self.channel_logger.log(self.channel_logger.MESSAGE, self.connection.get_nickname(),
+                                            message=message)
                     self.log.info('Sending message to ' + channel.name)
                     self.connection.privmsg(channel.name, message)
                 elif destination == "action":
                     # Default action
                     if public:
-                        self.channel_logger.log_action(self.connection.get_nickname(), message)
+                        self.channel_logger.log(self.channel_logger.ACTION, self.connection.get_nickname(),
+                                                message=message)
 
                     self.log.info('Sending action to ' + channel.name)
                     self.connection.action(default_destination, message)
                 else:
                     # Default message
                     if public:
-                        self.channel_logger.log_message(self.connection.get_nickname(), message)
+                        self.channel_logger.log(self.channel_logger.MESSAGE, self.connection.get_nickname(),
+                                                message=message)
 
                     self.log.info('Sending message to ' + default_destination)
                     self.connection.privmsg(default_destination, message)
@@ -183,10 +188,26 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
                 # Default message
                 message = self._parse_message(message)
                 if public:
-                    self.channel_logger.log_message(self.connection.get_nickname(), message)
+                    self.channel_logger.log(self.channel_logger.MESSAGE, self.connection.get_nickname(),
+                                            message=message)
 
                 self.log.info('Sending message to ' + default_destination)
                 self.connection.privmsg(default_destination, message)
+
+    def query_logger(self, source):
+        """
+        Retrieve a query logger instance for the specified client
+
+        Args:
+            source(irc.client.NickMask): NickMask of the client
+        """
+        # Do we already have a query logging instance for this user?
+        if source.nick in self.query_loggers:
+            return self.query_loggers[source.nick]
+
+        # Set up a new query logger instance
+        self.query_loggers[source.nick] = IRCQueryLogger(self.network, source)
+        return self.query_loggers[source.nick]
 
     ################################
     # Numeric / Response Events    #
@@ -262,7 +283,7 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         Handle channel messages
         """
         # Log the message
-        self.channel_logger.log_message(e.source.nick, e.arguments[0])
+        self.channel_logger.log(self.channel_logger.MESSAGE, e.source.nick, e.source.host, e.arguments[0])
 
         # Get our hostmask to use as our name
         source = str(e.source).split("@", 1)
@@ -288,15 +309,18 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
             self.log.debug('No response received')
 
     def on_action(self, c, e):
-        self.channel_logger.log_action(e.source.nick, e.arguments[0])
+        self.channel_logger.log(self.channel_logger.ACTION, e.source.nick, e.source.host, e.arguments[0])
 
     def on_pubnotice(self, c, e):
-        self.channel_logger.log_notice(e.source.nick, e.arguments[0])
+        self.channel_logger.log(self.channel_logger.NOTICE, e.source.nick, e.source.host, e.arguments[0])
 
     def on_privmsg(self, c, e):
         """
         Handle private messages / queries
         """
+        # Log the message
+        self.query_logger(e.source).log_message(e.arguments[0], c, e.source)
+
         # Get our hostmask to use as our name
         source = str(e.source).split("@", 1)
         self.lang.set_name(source[1], e.source.nick)
@@ -324,13 +348,13 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         pass
 
     def on_join(self, c, e):
-        self.channel_logger.log_join(e.source)
+        self.channel_logger.log(self.channel_logger.JOIN, e.source.nick, e.source.host)
 
     def on_part(self, c, e):
         if not len(e.arguments):
             e.arguments.append(None)
 
-        self.channel_logger.log_part(e.source.nick, e.arguments[0])
+        self.channel_logger.log(self.channel_logger.PART, e.source.nick, e.source.host, e.arguments[0])
 
     def on_quit(self, c, e):
         """
@@ -340,7 +364,7 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         if not len(e.arguments):
             e.arguments.append(None)
 
-        self.channel_logger.log_quit(e.source.nick, e.arguments[0])
+        self.channel_logger.log(self.channel_logger.QUIT, e.source.nick, e.source.host, e.arguments[0])
 
     def on_kick(self, c, e):
         pass
