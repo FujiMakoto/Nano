@@ -232,7 +232,7 @@ class IRCQueryLogger(_IRCLogger):
             source(logger.IRCLoggerSource): The IRC nick being logged
             enabled(bool): Enable / disable logging. Defaults to True
         """
-        super().__init__(network, None, enabled)
+        super().__init__(network, source, enabled)
         self.source = source
 
         # Set our base path
@@ -256,7 +256,7 @@ class IRCQueryLogger(_IRCLogger):
         else:
             self.logfile = None
 
-    def log(self, log_format, connection, source=None, message=None):
+    def log(self, log_format, irc, source=None, message=None):
         """
         Write a new query log entry
 
@@ -274,7 +274,7 @@ class IRCQueryLogger(_IRCLogger):
         if source:
             # Has the hostmask changed since our last session?
             if source.host != self.source.host:
-                self.log(self.JOIN, connection, source, message)
+                self.log(self.JOIN, irc, source, message)
                 self.source = IRCLoggerSource(source.name, source.host)
 
             # Set the clients nick and hostmask
@@ -282,8 +282,17 @@ class IRCQueryLogger(_IRCLogger):
             hostmask = source.host
         else:
             # Set our nick and hostmask
-            nick = connection.get_nickname()
+            nick = irc.connection.get_nickname()
             hostmask = "localhost"
+
+        # Do we have a command string we need to filter?
+        if self.config.getboolean('IRC', 'RedactQueryCommandArguments') and irc.command_pattern.match(message):
+            # Parse our command string and re-format it into a filtered message
+            module, command, args, opts = irc.command.parse_command_string(message)
+            if module and command:
+                message = ">>> {module} {command}".format(module=module, command=command)
+                if len(args) or len(opts):
+                    message += " [** Command arguments redacted **]"
 
         # Yo dawg
         self.debug_log.debug('Logging PRIV_{type} from {nick}'

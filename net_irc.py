@@ -77,15 +77,11 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         """
         Execute an IRC command
         """
-        # Strip the trigger and split the command string
-        command_string = command_string.lstrip(">>>").strip()
-        command_string = shlex.split(command_string)
         self.log.info('Executing command ' + command_string[0])
 
         # Attempt to execute the command
-        # return self.command.execute(command_string[0], command_string[1:], self, self.network, self.channel, source)
         try:
-            reply = self.command.execute(command_string[0], command_string[1:], self, source, public)
+            reply = self.command.execute(command_string, self, source, public)
             return reply
         except Exception as e:
             self.log.warn('Exception thrown when executing command "{cmd}": {exception}'
@@ -449,7 +445,7 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         """
         # Log the message
         logger = self.query_logger(e.source)
-        logger.log(logger.MESSAGE, c, IRCLoggerSource(e.source.nick, e.source.host), e.arguments[0])
+        logger.log(logger.MESSAGE, self, IRCLoggerSource(e.source.nick, e.source.host), e.arguments[0])
 
         # Get our hostmask to use as our name
         source = str(e.source).split("@", 1)
@@ -484,7 +480,7 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         """
         # Log the notice
         logger = self.query_logger(e.source)
-        logger.log(logger.NOTICE, c, IRCLoggerSource(e.source.nick, e.source.host), e.arguments[0])
+        logger.log(logger.NOTICE, self, IRCLoggerSource(e.source.nick, e.source.host), e.arguments[0])
 
     def on_join(self, c, e):
         """
