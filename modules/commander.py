@@ -15,7 +15,7 @@ class Commander:
         # Initialize commander
         self.modules_dir = "modules"
         self.commands_file = "commands.py"
-        self.commands = []
+        self.commands = {}
         self.auth = Auth()
 
         # Option patterns
@@ -39,8 +39,8 @@ class Commander:
             name(str): Name of the module to import
         """
         # Format the module path and command class name
-        module_path = "%s.%s" % (self.modules_dir, name)
-        class_name  = "%s%s" % (name.capitalize(), "Commands")
+        module_path = "{modules_dir}.{module_name}".format(modules_dir=self.modules_dir, module_name=name)
+        class_name  = self._get_commands_class_name(name)
 
         # Import the parent module
         module = importlib.import_module(module_path)
@@ -48,24 +48,32 @@ class Commander:
         # Make sure we have a commands class, and import it into our commands list if so
         if hasattr(module, class_name):
             command_class = getattr(module, class_name)
-            self.commands.append(command_class())
+            self.commands[class_name] = command_class()
 
-    def _parse_arguments(self, args):
+    def _parse_command_arguments(self, command_args):
         """
         Parse any options passed with our arguments
 
         Args:
-            args(list): The command arguments
+            command_args(list): The command arguments
 
         Returns:
-            list: [0: args, 1: opts]
+            list: [0: module, 1: command, 2: args, 3: opts]
         """
+        # Set our defaults
+        module = None
+        command = None
         parsed_args = []
         opts = {}
 
         # Make sure we actually have a list
-        if isinstance(args, list):
-            for arg in args:
+        if isinstance(command_args, list):
+            # Set our module and command
+            module = command_args.pop(0)
+            command = command_args.pop(0)
+
+            # Loop through and parse our remaining arguments
+            for arg in command_args:
                 # Short option
                 match = self.short_opt_pattern.match(arg)
                 if match:
@@ -89,10 +97,19 @@ class Commander:
 
                 parsed_args.append(arg)
 
-        # Return our parsed arguments and options
-        return [parsed_args, opts]
+        # Return our parsed values
+        return [module, command, parsed_args, opts]
 
-    def _execute(self, command, args, opts, irc, source, public):
+    def _get_commands_class_name(self, module_name):
+        """
+        Return the formatted commands class name for the specified module
+
+        Args:
+            module_name(str): The name of the module
+        """
+        return "{module_name}Commands".format(module_name=module_name.capitalize())
+
+    def _execute(self, command, module, args, opts, irc, source, public):
         """
         Handle execution of the specified command
 
@@ -106,20 +123,24 @@ class Commander:
         Returns:
             str or None: Returns a reply to send to the client, or None if nothing should be returned
         """
-        for command_class in self.commands:
-            if hasattr(command_class, command):
-                command = getattr(command_class, command)
+        # Get our commands class name for the requested module
+        commands_class_name = self._get_commands_class_name(module)
+        if commands_class_name in self.commands:
+            # Load the commands class and check if our requested command exists in it
+            commands_class = self.commands[commands_class_name]
+            if hasattr(commands_class, command):
+                # Load the command and return the response
+                command = getattr(commands_class, command)
                 return command(args, opts, irc, source, public)
 
         return None
 
-    def execute(self, command, args, irc, source, public):
+    def execute(self, command_args, irc, source, public):
         """
         Attempt to execute the specified command
 
         Args:
-            command(str): The command to execute
-            args(list): The command arguments
+            command_args(str): The command to execute
             irc(NanoIRC): The active NanoIRC instance
             source(str): Hostmask of the requesting client
             public(bool): This command was executed from a public channel
@@ -132,8 +153,12 @@ class Commander:
         admin_prefix = "admin_command_"
         user_prefix  = "user_command_"
 
+        # Make sure we have at least two arguments (the module and the command)
+        if len(command_args) < 2:
+            return None
+
         # Parse arguments
-        args, opts = self._parse_arguments(args)
+        module, command, args, opts = self._parse_command_arguments(command_args)
 
         # Are we authenticated?
         if self.auth.check(source, irc.network):
@@ -141,14 +166,14 @@ class Commander:
 
             # If we're an administrator, attempt to execute an admin command
             if user.is_admin:
-                response = self._execute(admin_prefix + command, args, opts, irc, source, public)
+                response = self._execute(admin_prefix + command, module, args, opts, irc, source, public)
                 if response:
                     return response
 
-            # Otherwise, attempt to execute an unprivileged user command
-            response = self._execute(user_prefix + command, args, opts, irc, source, public)
+            # Attempt to execute an unprivileged user command
+            response = self._execute(user_prefix + command, module, args, opts, irc, source, public)
             if response:
                 return response
 
         # Attempt to execute a public command
-        return self._execute(prefix + command, args, opts, irc, source, public)
+        return self._execute(prefix + command, module, args, opts, irc, source, public)
