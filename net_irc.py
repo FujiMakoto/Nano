@@ -13,7 +13,7 @@ import irc.strings
 import irc.events
 from modules import Commander
 from language import Language
-from logger import IRCChannelLogger, IRCQueryLogger
+from logger import IRCChannelLogger, IRCQueryLogger, IRCLoggerSource
 
 __author__     = "Makoto Fujikawa"
 __copyright__  = "Copyright 2015, Makoto Fujikawa"
@@ -50,7 +50,7 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         self.network_features = {}
 
         # Set up our channel and query loggers
-        self.channel_logger = IRCChannelLogger(network, channel, bool(self.channel.log))
+        self.channel_logger = IRCChannelLogger(network, IRCLoggerSource(channel.name), bool(self.channel.log))
         self.query_loggers  = {}
 
         # Patterns
@@ -200,13 +200,16 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
 
         Args:
             source(irc.client.NickMask): NickMask of the client
+
+        Returns:
+            logger.IRCQueryLogger
         """
         # Do we already have a query logging instance for this user?
         if source.nick in self.query_loggers:
             return self.query_loggers[source.nick]
 
         # Set up a new query logger instance
-        self.query_loggers[source.nick] = IRCQueryLogger(self.network, source)
+        self.query_loggers[source.nick] = IRCQueryLogger(self.network, IRCLoggerSource(source.nick, source.host))
         return self.query_loggers[source.nick]
 
     ################################
@@ -309,7 +312,12 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
             self.log.debug('No response received')
 
     def on_action(self, c, e):
-        self.channel_logger.log(self.channel_logger.ACTION, e.source.nick, e.source.host, e.arguments[0])
+        # Log the action
+        if e.target == c.get_nickname():
+            logger = self.query_logger(e.source)
+            logger.log(logger.ACTION, c, IRCLoggerSource(e.source.nick, e.source.host), e.arguments[0])
+        else:
+            self.channel_logger.log(self.channel_logger.ACTION, e.source.nick, e.source.host, e.arguments[0])
 
     def on_pubnotice(self, c, e):
         self.channel_logger.log(self.channel_logger.NOTICE, e.source.nick, e.source.host, e.arguments[0])
@@ -319,7 +327,8 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         Handle private messages / queries
         """
         # Log the message
-        self.query_logger(e.source).log_message(e.arguments[0], c, e.source)
+        logger = self.query_logger(e.source)
+        logger.log(logger.MESSAGE, c, IRCLoggerSource(e.source.nick, e.source.host), e.arguments[0])
 
         # Get our hostmask to use as our name
         source = str(e.source).split("@", 1)
@@ -345,7 +354,9 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
             self.log.info(e.source.nick + ' sent me a query I didn\'t know how to respond to')
 
     def on_privnotice(self, c, e):
-        pass
+        # Log the notice
+        logger = self.query_logger(e.source)
+        logger.log(logger.NOTICE, c, IRCLoggerSource(e.source.nick, e.source.host), e.arguments[0])
 
     def on_join(self, c, e):
         self.channel_logger.log(self.channel_logger.JOIN, e.source.nick, e.source.host)

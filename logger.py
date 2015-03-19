@@ -12,22 +12,22 @@ __version__    = "1.0.0"
 __maintainer__ = "Makoto Fujikawa"
 
 
+# noinspection PyTypeChecker
 class _IRCLogger():
     """
     Base IRC logger class
     """
-    def __init__(self, network, channel, enabled=True):
+    def __init__(self, network, source, enabled=True):
         """
         Initialize a new IRC Logger instance
 
         Args:
             network(database.models.Network): The IRC network name
-            channel(database.models.Channel): The channel being logged
+            source(logger.IRCLoggerSource): The channel or IRC nick being logged
             enabled(bool): Enable / disable logging. Defaults to True
         """
         # Load the logger configuration file
         self.config  = self.config()
-        self.config  = self.config['IRC']
         self.enabled = enabled
 
         # Set up our debug logger
@@ -35,27 +35,49 @@ class _IRCLogger():
 
         # Set our network and channel
         self.network = network
-        self.channel = channel
+        self.source  = source
 
         # Set the default timestamp format
-        self.timestamp_format = self.config['TimestampFormat']
+        self.timestamp_format = self.config['IRC']['TimestampFormat']
 
-        # A logfile should be defined in the extending classes
+        # A logfile and path should be defined in the extending classes
+        self.logfile_path = None
         self.logfile = None
 
     def enable(self):
         """
         Enable the logger
         """
-        self.debug_log.info('Setting up channel logging for ' + self.channel.name)
+        self.debug_log.info('Setting up logging for ' + self.source.name)
+
+        # Open our logfile
+        if not self.logfile and self.logfile_path:
+            self.debug_log.debug('Opening logfile: ' + self.logfile_path)
+            self.logfile = open(self.logfile_path, "a+")
+
         self.enabled = True
 
     def disable(self):
         """
         Disable the logger
         """
-        self.debug_log.info('Disabling channel logging for ' + self.channel.name)
+        self.debug_log.info('Disabling logging for ' + self.source.name)
+
+        # Close our logfile
+        if self.logfile:
+            self.debug_log.debug('Closing logfile: ' + self.logfile_path)
+            self.logfile.close()
+            self.logfile = None
+
         self.enabled = False
+
+    def flush(self):
+        """
+        Flush the logfile to disk
+        """
+        if self.enabled and self.logfile:
+            self.debug_log.debug('Flushing log for ' + self.source.name)
+            self.logfile.flush()
 
     def get_timestamp(self, timestamp_format=None):
         """
@@ -114,27 +136,30 @@ class IRCChannelLogger(_IRCLogger):
         'QUIT': QUIT,
     }
 
-    def __init__(self, network, channel, enabled=True):
+    def __init__(self, network, source, enabled=True):
         """
         Initialize a new IRC Channel Logger instance
 
         Args:
             network(database.models.Network): The IRC network name
-            channel(database.models.Channel): The channel being logged
+            source(logger.IRCLoggerSource): The channel being logged
             enabled(bool): Enable / disable logging
         """
-        super().__init__(network, channel, enabled)
+        super().__init__(network, source, enabled)
 
         # Set our base path
-        self.base_path    = str(self.config['LogPath']).rstrip("/") + "/%s/" % self.network.name
-        self.logfile_name = self.channel.name + ".log"
+        self.base_path    = str(self.config['IRC']['LogPath']).rstrip("/") + "/%s/" % self.network.name
+        self.logfile_name = self.source.name + ".log"
         self.logfile_path = self.base_path + self.logfile_name
 
         # Make sure our logfile directory exists
         os.makedirs(self.base_path, 0o0750, True)
 
-        # Open the logfile in append+read mode
-        self.logfile = open(self.logfile_path, "a+")
+        # Open the logfile if enabled
+        if self.enabled:
+            self.enable()
+        else:
+            self.logfile = None
 
     def log(self, log_format, nick, hostmask=None, message=None):
         """
@@ -155,7 +180,7 @@ class IRCChannelLogger(_IRCLogger):
 
         # Format and write the log entry
         log_entry = log_format.format(nick=nick, hostmask=hostmask or "", message=message or "",
-                                      channel=self.channel.name)
+                                      channel=self.source.name)
         self.logfile.write(self.get_timestamp() + log_entry + "\n")
 
 
@@ -165,7 +190,7 @@ class IRCQueryLogger(_IRCLogger):
     """
     MESSAGE = " <{nick}> {message}"
     ACTION = " * {nick} {message}"
-    NOTICE = " -{nick}/{channel}- {message}"
+    NOTICE = " -{nick}- {message}"
     JOIN = " {nick} ({hostmask}) has initiated a new query session"
     PART = " {nick} has left ({message})"
     QUIT = " {nick} has quit ({message})"
@@ -187,28 +212,49 @@ class IRCQueryLogger(_IRCLogger):
         'QUIT': QUIT,
     }
 
+    serviceNicks = [
+        'NickServ',
+        'ChanServ',
+        'MemoServ',
+        'BotServ',
+        'OperServ',
+        'HostServ',
+        'Global',
+        'HelpServ'
+    ]
+
     def __init__(self, network, source, enabled=True):
         """
         Initialize a new IRC Query Logger instance
 
         Args:
             network(database.models.Network): The IRC network name
-            source(irc.client.NickMask): NickMask of the client
+            source(logger.IRCLoggerSource): The IRC nick being logged
             enabled(bool): Enable / disable logging. Defaults to True
         """
-        super().__init__(network, source, enabled)
+        super().__init__(network, None, enabled)
         self.source = source
 
         # Set our base path
-        self.base_path    = str(self.config['LogPath']).rstrip("/") + "/%s/queries/" % self.network.name
-        self.logfile_name = self.source.nick + ".log"
+        self.base_path    = str(self.config['IRC']['LogPath']).rstrip("/") + "/%s/queries/" % self.network.name
+        self.logfile_name = self.source.name + ".log"
         self.logfile_path = self.base_path + self.logfile_name
 
         # Make sure our logfile directory exists
         os.makedirs(self.base_path, 0o0750, True)
 
-        # Open the logfile in append+read mode
-        self.logfile = open(self.logfile_path, "a+")
+        # If we're not logging server messages, disable the logger on match
+        if not self.config.getboolean('IRC', 'LogServiceMessages'):
+            if source.name in self.serviceNicks and self.network.has_services:
+                # TODO: Consider performing further verification to make sure someone isn't impersonating services
+                self.debug_log.debug('Refusing to set up logger for service ' + source.name)
+                self.enabled = False
+
+        # Open the logfile if enabled
+        if self.enabled:
+            self.enable()
+        else:
+            self.logfile = None
 
     def log(self, log_format, connection, source=None, message=None):
         """
@@ -226,17 +272,39 @@ class IRCQueryLogger(_IRCLogger):
 
         # Are we logging a message from the client or ourselves?
         if source:
-            self.nick = source.nick
-            self.hostmask = source.host
+            # Has the hostmask changed since our last session?
+            if source.host != self.source.host:
+                self.log(self.JOIN, connection, source, message)
+                self.source = IRCLoggerSource(source.name, source.host)
+
+            # Set the clients nick and hostmask
+            nick = source.name
+            hostmask = source.host
         else:
-            self.nick = connection.get_nickname()
-            self.hostmask = "localhost"
+            # Set our nick and hostmask
+            nick = connection.get_nickname()
+            hostmask = "localhost"
 
         # Yo dawg
         self.debug_log.debug('Logging PRIV_{type} from {nick}'
-                             .format(type=self._formatToName[log_format], nick=self.nick))
+                             .format(type=self._formatToName[log_format], nick=nick))
 
         # Format and write the log entry
-        log_entry = log_format.format(nick=self.nick, hostmask=self.hostmask or "", message=message or "",
-                                      channel=self.channel.name)
+        log_entry = log_format.format(nick=nick, hostmask=hostmask or "", message=message or "")
         self.logfile.write(self.get_timestamp() + log_entry + "\n")
+
+
+class IRCLoggerSource:
+    """
+    IRC Logging source
+    """
+    def __init__(self, name, host=None):
+        """
+        Initialize a new IRC Logger Source class
+
+        Args:
+            name(str): The IRC nick or channel name
+            host(str): The clients hostmask
+        """
+        self.name = name
+        self.host = host
