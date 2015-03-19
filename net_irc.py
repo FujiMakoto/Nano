@@ -218,7 +218,11 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
 
     def on_nicknameinuse(self, c, e):
         """
-        If our nick is in use on connect, append an underscore to it and try again
+        Attempt to regain access to a nick in use if we can, otherwise append an underscore and retry
+
+        Args:
+            c(irc.client.ServerConnection): The active IRC server connection
+            e(irc.client.Event): The event response data
         """
         # TODO: Ghost using nickserv if possible
         nick = c.get_nickname() + "_"
@@ -226,55 +230,150 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         c.nick(nick)
 
     def on_serviceinfo(self, c, e):
+        """
+        ???
+
+        Args:
+            c(irc.client.ServerConnection): The active IRC server connection
+            e(irc.client.Event): The event response data
+        """
         pass
 
     def on_welcome(self, c, e):
         """
-        Join our specified channel once we get a welcome to the server
+        Join our specified channels once we get a welcome to the server
+
+        Args:
+            c(irc.client.ServerConnection): The active IRC server connection
+            e(irc.client.Event): The event response data
         """
         # TODO: Multi-channel support
         self.log.info('Joining channel: ' + self.channel.name)
         c.join(self.channel.name)
 
     def on_featurelist(self, c, e):
+        """
+        Parse and save the servers supported IRC features for later reference
+
+        Args:
+            c(irc.client.ServerConnection): The active IRC server connection
+            e(irc.client.Event): The event response data
+        """
         # TODO
         # feature_pattern = re.compile("^([A-Z]+)(=(\S+))?$")
         pass
 
     def on_cannotsendtochan(self, c, e):
+        """
+        Handle instances where we cannot send a message to a channel we are in (generally when we are banned)
+
+        Args:
+            c(irc.client.ServerConnection): The active IRC server connection
+            e(irc.client.Event): The event response data
+        """
         pass
 
     def on_toomanychannels(self, c, e):
+        """
+        Handle instances where we attempt to join more channels than the server allows
+
+        Args:
+            c(irc.client.ServerConnection): The active IRC server connection
+            e(irc.client.Event): The event response data
+        """
         pass
 
     def on_erroneusnickname(self, c, e):
+        """
+        Handle instances where the nickname we want to use is considered erroneous by the server
+
+        Args:
+            c(irc.client.ServerConnection): The active IRC server connection
+            e(irc.client.Event): The event response data
+        """
         pass
 
     def on_unavailresource(self, c, e):
+        """
+        Handle instances where the nickname we want to use is not in use but unavailable (Release from nickserv?)
+
+        Args:
+            c(irc.client.ServerConnection): The active IRC server connection
+            e(irc.client.Event): The event response data
+        """
         # Release nick from nickserv
         pass
 
     def on_channelisfull(self, c, e):
+        """
+        If we try and join a channel that is full, wait before attempting to join the channel again
+
+        Args:
+            c(irc.client.ServerConnection): The active IRC server connection
+            e(irc.client.Event): The event response data
+        """
         # Wait XX seconds and attempt to join
         pass
 
     def on_keyset(self, c, e):
+        """
+        Handle instances where we try and join a channel that is key protected (and we don't have a key saved)
+
+        Args:
+            c(irc.client.ServerConnection): The active IRC server connection
+            e(irc.client.Event): The event response data
+        """
         pass
 
     def on_badchannelkey(self, c, e):
+        """
+        Handle instances where our key for a channel is returned invalid
+
+        Args:
+            c(irc.client.ServerConnection): The active IRC server connection
+            e(irc.client.Event): The event response data
+        """
         pass
 
     def on_inviteonlychan(self, c, e):
+        """
+        If we attempt to join a channel that is invite only, see if we can knock to request access
+
+        Args:
+            c(irc.client.ServerConnection): The active IRC server connection
+            e(irc.client.Event): The event response data
+        """
         # Knock knock
         pass
 
     def on_bannedfromchan(self, c, e):
+        """
+        Handle instances where we are banned from a channel we are trying to join
+
+        Args:
+            c(irc.client.ServerConnection): The active IRC server connection
+            e(irc.client.Event): The event response data
+        """
         pass
 
     def on_banlistfull(self, c, e):
+        """
+        Handle instances where we are unable to ban a user because the channels banlist is full
+
+        Args:
+            c(irc.client.ServerConnection): The active IRC server connection
+            e(irc.client.Event): The event response data
+        """
         pass
 
     def on_chanoprivsneeded(self, c, e):
+        """
+        Handle instances where we attempt to perform an action that requires channel operate privileges
+
+        Args:
+            c(irc.client.ServerConnection): The active IRC server connection
+            e(irc.client.Event): The event response data
+        """
         pass
 
     ################################
@@ -283,7 +382,11 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
 
     def on_pubmsg(self, c, e):
         """
-        Handle channel messages
+        Handle public channel messages
+
+        Args:
+            c(irc.client.ServerConnection): The active IRC server connection
+            e(irc.client.Event): The event response data
         """
         # Log the message
         self.channel_logger.log(self.channel_logger.MESSAGE, e.source.nick, e.source.host, e.arguments[0])
@@ -312,6 +415,13 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
             self.log.debug('No response received')
 
     def on_action(self, c, e):
+        """
+        Handle actions (from both public channels AND queries)
+
+        Args:
+            c(irc.client.ServerConnection): The active IRC server connection
+            e(irc.client.Event): The event response data
+        """
         # Log the action
         if e.target == c.get_nickname():
             logger = self.query_logger(e.source)
@@ -320,11 +430,22 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
             self.channel_logger.log(self.channel_logger.ACTION, e.source.nick, e.source.host, e.arguments[0])
 
     def on_pubnotice(self, c, e):
+        """
+        Handle public channel notices
+
+        Args:
+            c(irc.client.ServerConnection): The active IRC server connection
+            e(irc.client.Event): The event response data
+        """
         self.channel_logger.log(self.channel_logger.NOTICE, e.source.nick, e.source.host, e.arguments[0])
 
     def on_privmsg(self, c, e):
         """
-        Handle private messages / queries
+        Handle private messages (queries)
+
+        Args:
+            c(irc.client.ServerConnection): The active IRC server connection
+            e(irc.client.Event): The event response data
         """
         # Log the message
         logger = self.query_logger(e.source)
@@ -354,14 +475,35 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
             self.log.info(e.source.nick + ' sent me a query I didn\'t know how to respond to')
 
     def on_privnotice(self, c, e):
+        """
+        Handle private notices
+
+        Args:
+            c(irc.client.ServerConnection): The active IRC server connection
+            e(irc.client.Event): The event response data
+        """
         # Log the notice
         logger = self.query_logger(e.source)
         logger.log(logger.NOTICE, c, IRCLoggerSource(e.source.nick, e.source.host), e.arguments[0])
 
     def on_join(self, c, e):
+        """
+        Handle user join events
+
+        Args:
+            c(irc.client.ServerConnection): The active IRC server connection
+            e(irc.client.Event): The event response data
+        """
         self.channel_logger.log(self.channel_logger.JOIN, e.source.nick, e.source.host)
 
     def on_part(self, c, e):
+        """
+        Handle user part events
+
+        Args:
+            c(irc.client.ServerConnection): The active IRC server connection
+            e(irc.client.Event): The event response data
+        """
         if not len(e.arguments):
             e.arguments.append(None)
 
@@ -370,6 +512,10 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
     def on_quit(self, c, e):
         """
         Handle channel exits
+
+        Args:
+            c(irc.client.ServerConnection): The active IRC server connection
+            e(irc.client.Event): The event response data
         """
         # TODO: Clear login sessions
         if not len(e.arguments):
@@ -378,6 +524,13 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         self.channel_logger.log(self.channel_logger.QUIT, e.source.nick, e.source.host, e.arguments[0])
 
     def on_kick(self, c, e):
+        """
+        Handle channel kick events
+
+        Args:
+            c(irc.client.ServerConnection): The active IRC server connection
+            e(irc.client.Event): The event response data
+        """
         pass
 
 
