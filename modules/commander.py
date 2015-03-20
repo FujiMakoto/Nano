@@ -1,5 +1,6 @@
 import os
 import re
+import shlex
 import importlib
 from modules import Auth
 
@@ -50,56 +51,6 @@ class Commander:
             command_class = getattr(module, class_name)
             self.commands[class_name] = command_class()
 
-    def _parse_command_arguments(self, command_args):
-        """
-        Parse any options passed with our arguments
-
-        Args:
-            command_args(list): The command arguments
-
-        Returns:
-            list: [0: module, 1: command, 2: args, 3: opts]
-        """
-        # Set our defaults
-        module = None
-        command = None
-        parsed_args = []
-        opts = {}
-
-        # Make sure we actually have a list
-        if isinstance(command_args, list):
-            # Set our module and command
-            module = command_args.pop(0)
-            command = command_args.pop(0)
-
-            # Loop through and parse our remaining arguments
-            for arg in command_args:
-                # Short option
-                match = self.short_opt_pattern.match(arg)
-                if match:
-                    # Format option and remove it from our arguments list
-                    arg = match.group(1)
-
-                    # Add the option to our opts dictionary
-                    opts[arg] = True
-                    continue
-
-                # Long option
-                match = self.long_opt_pattern.match(arg)
-                if match:
-                    # Format option and remove it from our arguments list
-                    arg = match.group(1)
-                    argopt = match.group(2)
-
-                    # Add the option to our opts dictionary
-                    opts[arg] = argopt
-                    continue
-
-                parsed_args.append(arg)
-
-        # Return our parsed values
-        return [module, command, parsed_args, opts]
-
     def _get_commands_class_name(self, module_name):
         """
         Return the formatted commands class name for the specified module
@@ -114,8 +65,10 @@ class Commander:
         Handle execution of the specified command
 
         Args:
-            command(str): The command to execute
+            command(str): Name of the command to execute
+            module(str): Name of the module
             args(list): The command arguments
+            opts(dict): The command options
             irc(NanoIRC): The active NanoIRC instance
             source(str): Hostmask of the requesting client
             public(bool): This command was executed from a public channel
@@ -135,7 +88,43 @@ class Commander:
 
         return None
 
-    def execute(self, command_args, irc, source, public):
+    def _help_execute(self, module, command=None):
+        """
+        Return the help entry for the specified module or command
+
+        Args:
+            module(str): Name of the requested module
+            command(str): Name of the requested command
+
+        Returns:
+            str, dict, list or None: The help entry, or None if no help entry exists
+        """
+        # Get our commands class name for the requested module
+        commands_class_name = self._get_commands_class_name(module)
+        commands_help = None
+
+        if commands_class_name in self.commands:
+            # Load the commands class and check if a help dictionary exists in it
+            commands_class = self.commands[commands_class_name]
+            if hasattr(commands_class, 'commands_help'):
+                commands_help = commands_class.commands_help
+
+        # Attempt to retrieve the requested help entry
+        if commands_help:
+            if not command and 'main' in commands_help:
+                return commands_help['main']
+
+            if command and command in commands_help:
+                return commands_help[command]
+        else:
+            return "Either no help entries for <strong>{module}</strong> are available or the module does not exist"\
+                .format(module=module)
+
+        # Return a default message if we didn't get anything
+        return "Either no help entry is available for <strong>{command}</strong> or the command does not exist"\
+            .format(command=command)
+
+    def execute(self, command_string, irc, source, public):
         """
         Attempt to execute the specified command
 
@@ -153,12 +142,22 @@ class Commander:
         admin_prefix = "admin_command_"
         user_prefix  = "user_command_"
 
+        # Parse our command string into names, arguments and options
+        module, command, args, opts = self.parse_command_string(command_string)
+
         # Make sure we have at least two arguments (the module and the command)
-        if len(command_args) < 2:
+        if not module or not command:
             return None
 
-        # Parse arguments
-        module, command, args, opts = self._parse_command_arguments(command_args)
+        # Are we executing a help command? (TODO: This is a bit kludgy)
+        if module == 'help':
+            module = command
+            command = args[0] if len(args) else None
+            return self._help_execute(module, command)
+
+        if command == 'help':
+            command = args[0] if len(args) else None
+            return self._help_execute(module, command)
 
         # Are we authenticated?
         if self.auth.check(source, irc.network):
@@ -177,3 +176,59 @@ class Commander:
 
         # Attempt to execute a public command
         return self._execute(prefix + command, module, args, opts, irc, source, public)
+
+    def parse_command_string(self, command_string):
+        """
+        Parse any options passed with our arguments
+
+        Args:
+            command_args(list): The command arguments
+
+        Returns:
+            list: [0: module, 1: command, 2: args, 3: opts]
+        """
+        # Strip the trigger and split the command string
+        command_string = command_string.lstrip(">>>").strip()
+        command_args = shlex.split(command_string)
+
+        # Set our defaults
+        module = None
+        command = None
+        parsed_args = []
+        opts = {}
+
+        # Make sure we actually have a list
+        if isinstance(command_args, list):
+            # Loop through and parse our remaining arguments
+            for arg in command_args:
+                # Short option
+                match = self.short_opt_pattern.match(arg)
+                if match:
+                    # Format option and remove it from our arguments list
+                    arg = match.group(1).lower()
+
+                    # Add the option to our opts dictionary
+                    opts[arg] = True
+                    continue
+
+                # Long option
+                match = self.long_opt_pattern.match(arg)
+                if match:
+                    # Format option and remove it from our arguments list
+                    arg = match.group(1).lower()
+                    argopt = match.group(2).lower()
+
+                    # Add the option to our opts dictionary
+                    opts[arg] = argopt
+                    continue
+
+                parsed_args.append(arg.lower())
+
+            # Set our module and command
+            if len(parsed_args):
+                module = parsed_args.pop(0)
+            if len(parsed_args):
+                command = parsed_args.pop(0)
+
+        # Return our parsed values
+        return [module, command, parsed_args, opts]
