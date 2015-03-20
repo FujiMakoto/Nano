@@ -17,7 +17,7 @@ class _IRCLogger():
     """
     Base IRC logger class
     """
-    def __init__(self, network, source, enabled=True):
+    def __init__(self, irc, source, enabled=True):
         """
         Initialize a new IRC Logger instance
 
@@ -33,9 +33,9 @@ class _IRCLogger():
         # Set up our debug logger
         self.debug_log = logging.getLogger('nano.irc.logger')
 
-        # Set our network and channel
-        self.network = network
-        self.source  = source
+        # Set our irc and source reference
+        self.irc = irc
+        self.source = source
 
         # Set the default timestamp format
         self.timestamp_format = self.config['IRC']['TimestampFormat']
@@ -136,7 +136,7 @@ class IRCChannelLogger(_IRCLogger):
         'QUIT': QUIT,
     }
 
-    def __init__(self, network, source, enabled=True):
+    def __init__(self, irc, source, enabled=True):
         """
         Initialize a new IRC Channel Logger instance
 
@@ -145,10 +145,10 @@ class IRCChannelLogger(_IRCLogger):
             source(logger.IRCLoggerSource): The channel being logged
             enabled(bool): Enable / disable logging
         """
-        super().__init__(network, source, enabled)
+        super().__init__(irc, source, enabled)
 
         # Set our base path
-        self.base_path    = str(self.config['IRC']['LogPath']).rstrip("/") + "/%s/" % self.network.name
+        self.base_path    = str(self.config['IRC']['LogPath']).rstrip("/") + "/%s/" % self.irc.network.name
         self.logfile_name = self.source.name + ".log"
         self.logfile_path = self.base_path + self.logfile_name
 
@@ -223,7 +223,7 @@ class IRCQueryLogger(_IRCLogger):
         'HelpServ'
     ]
 
-    def __init__(self, network, source, enabled=True):
+    def __init__(self, irc, source, enabled=True):
         """
         Initialize a new IRC Query Logger instance
 
@@ -232,20 +232,23 @@ class IRCQueryLogger(_IRCLogger):
             source(logger.IRCLoggerSource): The IRC nick being logged
             enabled(bool): Enable / disable logging. Defaults to True
         """
-        super().__init__(network, source, enabled)
-        self.source = source
+        super().__init__(irc, source, enabled)
+
+        # Set come configuration variables
+        self.redact_command_args = self.config.getboolean('IRC', 'RedactQueryCommandArguments')
+        self.log_services = self.config.getboolean('IRC', 'LogServiceMessages')
 
         # Set our base path
-        self.base_path    = str(self.config['IRC']['LogPath']).rstrip("/") + "/%s/queries/" % self.network.name
+        self.base_path    = str(self.config['IRC']['LogPath']).rstrip("/") + "/%s/queries/" % self.irc.network.name
         self.logfile_name = self.source.name + ".log"
         self.logfile_path = self.base_path + self.logfile_name
 
         # Make sure our logfile directory exists
         os.makedirs(self.base_path, 0o0750, True)
 
-        # If we're not logging server messages, disable the logger on match
-        if not self.config.getboolean('IRC', 'LogServiceMessages'):
-            if source.name in self.serviceNicks and self.network.has_services:
+        # If we're not logging service messages, disable the logger on match
+        if not self.log_services:
+            if source.name in self.serviceNicks and self.irc.network.has_services:
                 # TODO: Consider performing further verification to make sure someone isn't impersonating services
                 self.debug_log.debug('Refusing to set up logger for service ' + source.name)
                 self.enabled = False
@@ -253,10 +256,11 @@ class IRCQueryLogger(_IRCLogger):
         # Open the logfile if enabled
         if self.enabled:
             self.enable()
+            self.log(self.JOIN, source)
         else:
             self.logfile = None
 
-    def log(self, log_format, irc, source=None, message=None):
+    def log(self, log_format, source=None, message=None):
         """
         Write a new query log entry
 
@@ -274,7 +278,7 @@ class IRCQueryLogger(_IRCLogger):
         if source:
             # Has the hostmask changed since our last session?
             if source.host != self.source.host:
-                self.log(self.JOIN, irc, source, message)
+                self.log(self.JOIN, source, message)
                 self.source = IRCLoggerSource(source.name, source.host)
 
             # Set the clients nick and hostmask
@@ -282,13 +286,13 @@ class IRCQueryLogger(_IRCLogger):
             hostmask = source.host
         else:
             # Set our nick and hostmask
-            nick = irc.connection.get_nickname()
+            nick = self.irc.connection.get_nickname()
             hostmask = "localhost"
 
         # Do we have a command string we need to filter?
-        if self.config.getboolean('IRC', 'RedactQueryCommandArguments') and irc.command_pattern.match(message):
+        if self.redact_command_args and message and self.irc.command_pattern.match(message):
             # Parse our command string and re-format it into a filtered message
-            module, command, args, opts = irc.command.parse_command_string(message)
+            module, command, args, opts = self.irc.command.parse_command_string(message)
             if module and command:
                 message = ">>> {module} {command}".format(module=module, command=command)
                 if len(args) or len(opts):

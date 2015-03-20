@@ -50,7 +50,7 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         self.network_features = {}
 
         # Set up our channel and query loggers
-        self.channel_logger = IRCChannelLogger(network, IRCLoggerSource(channel.name), bool(self.channel.log))
+        self.channel_logger = IRCChannelLogger(self, IRCLoggerSource(channel.name), bool(self.channel.log))
         self.query_loggers  = {}
 
         # Patterns
@@ -98,7 +98,9 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         Returns:
             str: The IRC formatted string
         """
+        message = str(message)
         self.log.debug('Parsing message response: ' + message)
+
         # Parse bold text
         message = re.sub("(<strong>|<\/strong>)", "\x02", message, 0, re.UNICODE)
 
@@ -205,7 +207,7 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
             return self.query_loggers[source.nick]
 
         # Set up a new query logger instance
-        self.query_loggers[source.nick] = IRCQueryLogger(self.network, IRCLoggerSource(source.nick, source.host))
+        self.query_loggers[source.nick] = IRCQueryLogger(self, IRCLoggerSource(source.nick, source.host))
         return self.query_loggers[source.nick]
 
     ################################
@@ -421,7 +423,7 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         # Log the action
         if e.target == c.get_nickname():
             logger = self.query_logger(e.source)
-            logger.log(logger.ACTION, c, IRCLoggerSource(e.source.nick, e.source.host), e.arguments[0])
+            logger.log(logger.ACTION, IRCLoggerSource(e.source.nick, e.source.host), e.arguments[0])
         else:
             self.channel_logger.log(self.channel_logger.ACTION, e.source.nick, e.source.host, e.arguments[0])
 
@@ -445,7 +447,7 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         """
         # Log the message
         logger = self.query_logger(e.source)
-        logger.log(logger.MESSAGE, self, IRCLoggerSource(e.source.nick, e.source.host), e.arguments[0])
+        logger.log(logger.MESSAGE, IRCLoggerSource(e.source.nick, e.source.host), e.arguments[0])
 
         # Get our hostmask to use as our name
         source = str(e.source).split("@", 1)
@@ -480,7 +482,7 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         """
         # Log the notice
         logger = self.query_logger(e.source)
-        logger.log(logger.NOTICE, self, IRCLoggerSource(e.source.nick, e.source.host), e.arguments[0])
+        logger.log(logger.NOTICE, IRCLoggerSource(e.source.nick, e.source.host), e.arguments[0])
 
     def on_join(self, c, e):
         """
