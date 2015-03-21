@@ -1,2 +1,2 @@
 from .module import Auth
-from .commands import AuthCommands
+from .irc import Commands, Events
