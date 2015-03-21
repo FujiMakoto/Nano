@@ -4,20 +4,12 @@ Google AJAX Search Module
 http://code.google.com/apis/ajaxsearch/documentation/reference.html
 Needs Python 3.4 or later
 """
-try:
-    import json
-except ImportError as e:
-    import simplejson as json
-except ImportError as e:
-    print(e)
-    exit()
-
+import json
 import sys
 import urllib.parse
 import urllib.request
 import logging
 import argparse
-import configparser
 
 
 __author__  = "Kiran Bandla, Makoto Fujikawa"
@@ -70,23 +62,14 @@ If this header is not present, a value of en is assumed.
 
 class PyGoogle:
 
-    def __init__(self, query, pages=None, hl='en', log_level=logging.INFO):
-        self.pages  = pages     # Number of pages. Defaults to a value specified in module.cfg
+    def __init__(self, query, pages=10, hl='en'):
+        self.pages  = pages      # Number of pages. Default 10
         self.query  = query
         self.filter = FILTER_ON  # Controls turning on or off the duplicate content filter. On = 1.
-        self.rsz    = RSZ_SMALL  # Results per page. small = 4 /large = 8
+        self.rsz    = RSZ_LARGE  # Results per page. small = 4 /large = 8
         self.safe   = SAFE_OFF   # SafeBrowsing -  active/moderate/off
         self.hl     = hl         # Defaults to English (en)
-        self.__setup_logging(level=log_level)
-
-        # Load our configuration
-        self.config  = configparser.ConfigParser()
-        self.config.read('modules/Google/module.cfg')
-        self.config = self.config['Search']
-
-        # How many results do we want to retrieve? We get 8 results per page.
-        if not self.pages:
-            self.pages = int(self.config['MaxPages'])
+        self.__setup_logging(level=logging.INFO)
 
     def __setup_logging(self, level):
         logger = logging.getLogger('PyGoogle')
@@ -99,12 +82,8 @@ class PyGoogle:
     def __search__(self, print_results=False):
         """
         Internal search query
-
-        Args:
-            print_results(bool)
-
-        Returns:
-            dict or bool
+        :param print_results: bool
+        :return: list of results if successful or False otherwise
         """
         results = []
         for page in range(0, self.pages):
@@ -147,11 +126,9 @@ class PyGoogle:
     def search(self):
         """
         Perform a Google search query and return the results as a dictionary
-
-        Returns:
-            dict: Results
+        :return: dict of Titles and URLs
         """
-        results = {}
+        results = []
         search_results = self.__search__()
         if not search_results:
             self.logger.info('No results returned')
@@ -161,7 +138,7 @@ class PyGoogle:
                 for result in data['responseData']['results']:
                     if result and 'titleNoFormatting' in result:
                         title = urllib.parse.unquote(result['titleNoFormatting'])
-                        results[title] = urllib.parse.unquote(result['unescapedUrl'])
+                        results.append({title: urllib.parse.unquote(result['unescapedUrl'])})
             else:
                 self.logger.error('no responseData key found in response')
                 self.logger.error(data)
@@ -170,9 +147,7 @@ class PyGoogle:
     def search_page_wise(self):
         """
         Get a dict of page-wise urls
-
-        Returns:
-            dict: page-wise URL's
+        :return: dict
         """
         results = {}
         for page in range(0, self.pages):
@@ -200,9 +175,7 @@ class PyGoogle:
     def get_urls(self):
         """
         Get a list of result URLs
-
-        Returns:
-            dict: URL's
+        :return: list
         """
         results = []
         search_results = self.__search__()
@@ -219,9 +192,7 @@ class PyGoogle:
     def get_result_count(self):
         """
         Get the number of results
-
-        Returns:
-            int: Result count
+        :return: int
         """
         temp = self.pages
         self.pages = 1
