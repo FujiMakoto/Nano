@@ -1,4 +1,5 @@
 import datetime
+import logging
 import configparser
 from modules.exceptions import ModuleDisabledError
 
@@ -12,6 +13,7 @@ class Datetime():
         self.config  = configparser.ConfigParser()
         self.config.read('modules/Datetime/module.cfg')
         self.enabled = self.config.getboolean('Module', 'Enabled')
+        self.log     = logging.getLogger('nano.modules.datetime')
         self.now     = datetime.datetime.now()
 
         # Is the module enabled?
@@ -40,6 +42,7 @@ class Datetime():
         if not self.enabled:
             return
 
+        self.log.debug('Returning the day')
         day = self.now.strftime("%-d")
         return day + self.suffix(int(day))
 
@@ -54,6 +57,7 @@ class Datetime():
         if not self.enabled:
             return
 
+        self.log.debug('Returning the week')
         return self.now.strftime("%A")
 
     def month(self):
@@ -67,6 +71,7 @@ class Datetime():
         if not self.enabled:
             return
 
+        self.log.debug('Returning the month')
         return self.now.strftime("%B")
 
     def year(self):
@@ -80,7 +85,18 @@ class Datetime():
         if not self.enabled:
             return
 
+        self.log.debug('Returning the year')
         return self.now.strftime("%Y")
+
+    def date(self):
+        """
+        Get the current formatted date
+
+        Returns:
+            str
+        """
+        self.log.debug('Returning the formatted date')
+        return "{month} {day}, {year}".format(month=self.month(), day=self.day(), year=self.year())
 
     def time(self, timezone=False):
         """
@@ -103,6 +119,7 @@ class Datetime():
             time = self.now.strftime("%-I:%M %p") + " " + self.now.strftime("%Z")
             time = time.rstrip(" ")
 
+        self.log.debug('Returning the time')
         return time
 
     def how_long_ago(self, epoch):
@@ -154,4 +171,5 @@ class Datetime():
             else:
                 difference = str(difference) + " days"
 
+        self.log.debug('Returning a time difference')
         return difference
