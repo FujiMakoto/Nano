@@ -12,9 +12,10 @@ class Google:
         Initialize a new Google instance
         """
         # Get the module configuration
-        self.config  = ConfigParser()
+        self.config = ConfigParser()
         self.config.read('modules/Google/module.cfg')
         self.enabled = self.config.getboolean('Module', 'Enabled')
+        self.result_limit = self.config.getint('Search', 'MaxResults')
 
     def _search(self, query, max_results):
         """
@@ -28,6 +29,7 @@ class Google:
             list, dict or None
         """
         # Set up PyGoogle and fetch our results
+        max_results = min(max_results, self.result_limit)
         pages = ceil(max_results / 8)
         google = PyGoogle(query, pages)
         results = google.search()

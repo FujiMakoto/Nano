@@ -10,6 +10,8 @@ import urllib.parse
 import urllib.request
 import logging
 import argparse
+from math import ceil
+from configparser import ConfigParser
 
 
 __author__  = "Kiran Bandla, Makoto Fujikawa"
@@ -62,13 +64,15 @@ If this header is not present, a value of en is assumed.
 
 class PyGoogle:
 
-    def __init__(self, query, pages=10, hl='en'):
-        self.pages  = pages      # Number of pages. Default 10
+    def __init__(self, query, pages=None, hl='en'):
+        self.config = ConfigParser()
+        self.config.read('modules/Google/module.cfg')
+        self.pages  = pages or ceil(self.config.getint('Search', 'DefaultResults') / 8)
         self.query  = query
-        self.filter = FILTER_ON  # Controls turning on or off the duplicate content filter. On = 1.
-        self.rsz    = RSZ_LARGE  # Results per page. small = 4 /large = 8
-        self.safe   = SAFE_OFF   # SafeBrowsing -  active/moderate/off
-        self.hl     = hl         # Defaults to English (en)
+        self.filter = int(self.config.getboolean('Search', 'FilterDuplicates'))
+        self.rsz    = RSZ_LARGE
+        self.safe   = self.config['Search']['SafeSearch'].lower()
+        self.hl     = hl
         self.__setup_logging(level=logging.INFO)
 
     def __setup_logging(self, level):

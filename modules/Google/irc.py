@@ -37,7 +37,7 @@ class Commands:
         # How many results are we retrieving?
         results = 4
         if 'results' in opts:
-            results = min(abs(int(opts['results'])), 8)
+            results = abs(int(opts['results']))
 
         return self.google.search(' '.join(args), results)
 
