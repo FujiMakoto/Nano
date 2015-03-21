@@ -11,13 +11,22 @@ class Commands:
     """
     commands_help = {
         'main': [
-            'Provides user authentication and registration services',
+            'Provides user authentication and registration services.',
             'Available commands: <strong>login, logout, whoami</strong>'
         ],
 
         'login': [
-            'Log in to an existing account',
-            'Syntax: <strong><email></strong> <strong><password></strong>'
+            'Log in to an existing account. This command can not be used in public channels.',
+            'Syntax: login <strong><email></strong> <strong><password></strong>'
+        ],
+
+        'logout': [
+            'Destroy your current login session. This command can not be used in public channels.',
+        ],
+
+        'whoami': [
+            'Returns the email of the account you are currently logged into. '
+            'This command can not be used in public channels.',
         ]
     }
 
