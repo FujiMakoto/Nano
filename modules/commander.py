@@ -4,19 +4,37 @@ import shlex
 import importlib
 from modules import Auth
 
+__author__     = "Makoto Fujikawa"
+__copyright__  = "Copyright 2015, Makoto Fujikawa"
+__version__    = "1.0.0"
+__maintainer__ = "Makoto Fujikawa"
+
 
 class Commander:
+
+    EVENT_JOIN = "on_join"
+    EVENT_PART = "on_part"
+    EVENT_QUIT = "on_quit"
+    EVENT_PUBMSG = "on_public_message"
+    EVENT_PRIVMSG = "on_private_message"
+    EVENT_PUBACTION = "on_public_action"
+    EVENT_PRIVACTION = "on_private_action"
+    EVENT_PUBNOTICE = "on_public_notice"
+    EVENT_PRIVNOTICE = "on_private_notice"
+
     """
     Import and instantiate module command classes
     """
-    def __init__(self):
+    def __init__(self, irc):
         """
         Initialize a new Commander instance
         """
         # Initialize commander
+        self.irc = irc
         self.modules_dir = "modules"
-        self.commands_file = "commands.py"
+        self.irc_file = "irc.py"
         self.commands = {}
+        self.events = {}
         self.auth = Auth()
 
         # Option patterns
@@ -29,38 +47,42 @@ class Commander:
             # Loop through our sub-directories that are not private (i.e. __pycache__)
             if os.path.isdir(path) and not name.startswith('_'):
                 # Check and see if this module has a commands file
-                if os.path.isfile(os.path.join(path, self.commands_file)):
-                    self._load_module_commands(name)
+                if os.path.isfile(os.path.join(path, self.irc_file)):
+                    self._load_module(name)
 
-    def _load_module_commands(self, name):
+    def _load_module(self, name):
         """
-        Attempt to load the commands class for the specified module
+        Attempt to load the Commands and Events classes for the specified module
 
         Args:
             name(str): Name of the module to import
         """
-        # Format the module path and command class name
-        module_path = "{modules_dir}.{module_name}".format(modules_dir=self.modules_dir, module_name=name)
-        class_name  = self._get_commands_class_name(name)
+        # Import the IRC module
+        module = self._import_module(name)
 
-        # Import the parent module
-        module = importlib.import_module(module_path)
+        # See if we have a Commands class, and import it into our commands list if so
+        if hasattr(module, 'Commands'):
+            print(str(module) + ' has Commands')
+            command_class = getattr(module, 'Commands')
+            self.commands[name.lower()] = command_class()
 
-        # Make sure we have a commands class, and import it into our commands list if so
-        if hasattr(module, class_name):
-            command_class = getattr(module, class_name)
-            self.commands[class_name] = command_class()
+        # See if we have an Events class, and import it into our events list if so
+        if hasattr(module, 'Events'):
+            print(str(module) + ' has Events')
+            event_class = getattr(module, 'Events')
+            self.events[name.lower()] = event_class()
 
-    def _get_commands_class_name(self, module_name):
+    def _import_module(self, name):
         """
-        Return the formatted commands class name for the specified module
+        Return an imported module by its name
 
         Args:
             module_name(str): The name of the module
         """
-        return "{module_name}Commands".format(module_name=module_name.capitalize())
+        module_path = "{modules_dir}.{module_name}".format(modules_dir=self.modules_dir, module_name=name)
+        return importlib.import_module(module_path)
 
-    def _execute(self, command, module, args, opts, irc, source, public):
+    def _execute(self, command, module, args, opts, source, public):
         """
         Handle execution of the specified command
 
@@ -77,14 +99,14 @@ class Commander:
             str or None: Returns a reply to send to the client, or None if nothing should be returned
         """
         # Get our commands class name for the requested module
-        commands_class_name = self._get_commands_class_name(module)
-        if commands_class_name in self.commands:
+        module = module.lower()
+        if module in self.commands:
             # Load the commands class and check if our requested command exists in it
-            commands_class = self.commands[commands_class_name]
+            commands_class = self.commands[module]
             if hasattr(commands_class, command):
                 # Load the command and return the response
                 command = getattr(commands_class, command)
-                return command(args, opts, irc, source, public)
+                return command(args, opts, self.irc, source, public)
 
         return None
 
@@ -100,12 +122,12 @@ class Commander:
             str, dict, list or None: The help entry, or None if no help entry exists
         """
         # Get our commands class name for the requested module
-        commands_class_name = self._get_commands_class_name(module)
+        module = module.lower()
         commands_help = None
 
-        if commands_class_name in self.commands:
+        if module in self.commands:
             # Load the commands class and check if a help dictionary exists in it
-            commands_class = self.commands[commands_class_name]
+            commands_class = self.commands[module]
             if hasattr(commands_class, 'commands_help'):
                 commands_help = commands_class.commands_help
 
@@ -124,7 +146,7 @@ class Commander:
         return "Either no help entry is available for <strong>{command}</strong> or the command does not exist"\
             .format(command=command)
 
-    def execute(self, command_string, irc, source, public):
+    def execute(self, command_string, source, public):
         """
         Attempt to execute the specified command
 
@@ -160,22 +182,22 @@ class Commander:
             return self._help_execute(module, command)
 
         # Are we authenticated?
-        if self.auth.check(source, irc.network):
-            user = self.auth.user(source, irc.network)
+        if self.auth.check(source, self.irc.network):
+            user = self.auth.user(source, self.irc.network)
 
             # If we're an administrator, attempt to execute an admin command
             if user.is_admin:
-                response = self._execute(admin_prefix + command, module, args, opts, irc, source, public)
+                response = self._execute(admin_prefix + command, module, args, opts, source, public)
                 if response:
                     return response
 
             # Attempt to execute an unprivileged user command
-            response = self._execute(user_prefix + command, module, args, opts, irc, source, public)
+            response = self._execute(user_prefix + command, module, args, opts, source, public)
             if response:
                 return response
 
         # Attempt to execute a public command
-        return self._execute(prefix + command, module, args, opts, irc, source, public)
+        return self._execute(prefix + command, module, args, opts, source, public)
 
     def parse_command_string(self, command_string):
         """
@@ -232,3 +254,27 @@ class Commander:
 
         # Return our parsed values
         return [module, command, parsed_args, opts]
+
+    def event(self, event_name, event):
+        """
+        Fire IRC events for loaded modules
+
+        Args:
+            event_name(str): The name of the event being fired
+            event(irc.client.Event): The IRC event instance
+
+        Returns:
+            list
+        """
+        replies = []
+
+        # Loop through and execute our events
+        for module, events_class in self.events.items():
+            if hasattr(events_class, event_name):
+                event_method = getattr(events_class, event_name)
+                event_reply = event_method(event, self.irc)
+
+                if event_reply:
+                    replies.append(event_reply)
+
+        return replies
