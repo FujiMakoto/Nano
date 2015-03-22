@@ -1,7 +1,9 @@
 import os
 import re
 import shlex
+import logging
 import importlib
+from configparser import ConfigParser
 from modules import Auth
 
 __author__     = "Makoto Fujikawa"
@@ -15,12 +17,38 @@ class Commander:
     EVENT_JOIN = "on_join"
     EVENT_PART = "on_part"
     EVENT_QUIT = "on_quit"
+    EVENT_KICK = "on_kick"
     EVENT_PUBMSG = "on_public_message"
     EVENT_PRIVMSG = "on_private_message"
     EVENT_PUBACTION = "on_public_action"
     EVENT_PRIVACTION = "on_private_action"
     EVENT_PUBNOTICE = "on_public_notice"
     EVENT_PRIVNOTICE = "on_private_notice"
+
+    _methodToName = {
+        EVENT_JOIN: 'EVENT_JOIN',
+        EVENT_PART: 'EVENT_PART',
+        EVENT_QUIT: 'EVENT_QUIT',
+        EVENT_KICK: 'EVENT_KICK',
+        EVENT_PUBMSG: 'EVENT_PUBMSG',
+        EVENT_PRIVMSG: 'EVENT_PRIVMSG',
+        EVENT_PUBACTION: 'EVENT_PUBACTION',
+        EVENT_PRIVACTION: 'EVENT_PRIVACTION',
+        EVENT_PUBNOTICE: 'EVENT_PUBNOTICE',
+        EVENT_PRIVNOTICE: 'EVENT_PRIVNOTICE',
+    }
+    _nameToMethod = {
+        'EVENT_JOIN': EVENT_JOIN,
+        'EVENT_PART': EVENT_PART,
+        'EVENT_QUIT': EVENT_QUIT,
+        'EVENT_KICK': EVENT_KICK,
+        'EVENT_PUBMSG': EVENT_PUBMSG,
+        'EVENT_PRIVMSG': EVENT_PRIVMSG,
+        'EVENT_PUBACTION': EVENT_PUBACTION,
+        'EVENT_PRIVACTION': EVENT_PRIVACTION,
+        'EVENT_PUBNOTICE': EVENT_PUBNOTICE,
+        'EVENT_PRIVNOTICE': EVENT_PRIVNOTICE,
+    }
 
     """
     Import and instantiate module command classes
@@ -31,8 +59,10 @@ class Commander:
         """
         # Initialize commander
         self.irc = irc
+        self.log = logging.getLogger('nano.modules.commander')
         self.modules_dir = "modules"
         self.irc_file = "irc.py"
+        self.config_file = "module.cfg"
         self.commands = {}
         self.events = {}
         self.auth = Auth()
@@ -48,7 +78,22 @@ class Commander:
             if os.path.isdir(path) and not name.startswith('_'):
                 # Check and see if this module has a commands file
                 if os.path.isfile(os.path.join(path, self.irc_file)):
-                    self._load_module(name)
+                    # Check our module configuration file if it exists and make sure the module is enabled
+                    module_enabled = True
+                    config_path = os.path.join(path, self.config_file)
+                    if os.path.isfile(config_path):
+                        self.log.debug('Reading {module} configuration: {path}'.format(module=name, path=config_path))
+                        config = ConfigParser()
+                        config.read(os.path.join(path, self.config_file))
+                        if config.has_option('Module', 'Enabled'):
+                            module_enabled = config.getboolean('Module', 'Enabled')
+
+                    # Load the module
+                    if module_enabled:
+                        self.log.info('[LOAD] ' + name)
+                        self._load_module(name)
+                    else:
+                        self.log.info('[SKIP] {module} - Module disabled in configuration'.format(module=name))
 
     def _load_module(self, name):
         """
@@ -57,18 +102,19 @@ class Commander:
         Args:
             name(str): Name of the module to import
         """
+        self.log.debug('Loading module: ' + name)
         # Import the IRC module
         module = self._import_module(name)
 
         # See if we have a Commands class, and import it into our commands list if so
         if hasattr(module, 'Commands'):
-            print(str(module) + ' has Commands')
+            self.log.debug('Loading {module} Commands'.format(module=name))
             command_class = getattr(module, 'Commands')
             self.commands[name.lower()] = command_class()
 
         # See if we have an Events class, and import it into our events list if so
         if hasattr(module, 'Events'):
-            print(str(module) + ' has Events')
+            self.log.debug('Loading {module} Events'.format(module=name))
             event_class = getattr(module, 'Events')
             self.events[name.lower()] = event_class()
 
@@ -79,6 +125,7 @@ class Commander:
         Args:
             module_name(str): The name of the module
         """
+        self.log.debug('Importing module: ' + name)
         module_path = "{modules_dir}.{module_name}".format(modules_dir=self.modules_dir, module_name=name)
         return importlib.import_module(module_path)
 
@@ -266,6 +313,7 @@ class Commander:
         Returns:
             list
         """
+        self.log.debug('Firing ' + self._methodToName[event_name])
         replies = []
 
         # Loop through and execute our events
@@ -275,6 +323,10 @@ class Commander:
                 event_reply = event_method(event, self.irc)
 
                 if event_reply:
+                    self.log.info('Queuing {event} reply from {module}'
+                                  .format(event=self._methodToName[event_name], module=module.upper()))
+                    # TODO: Queue limit
                     replies.append(event_reply)
 
+        self.log.debug('Returning event replies: ' + str(replies))
         return replies
