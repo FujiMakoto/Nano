@@ -1,0 +1,153 @@
+import re
+import logging
+from urllib.request import urlopen
+from urllib.error import URLError, HTTPError
+from urllib.parse import urlparse
+from bs4 import BeautifulSoup
+
+__author__     = "Makoto Fujikawa"
+__copyright__  = "Copyright 2015, Makoto Fujikawa"
+__version__    = "1.0.0"
+__maintainer__ = "Makoto Fujikawa"
+
+
+class URL:
+    """
+    URL parsing and services
+    """
+    def __init__(self):
+        """
+        Initialize a new URL module instance
+        """
+        self.log = logging.getLogger('nano.modules.url')
+        # URL matching regex
+        # http://daringfireball.net/2010/07/improved_regex_for_matching_urls
+        self.url_regex = re.compile('((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s'
+                                    '()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{}'
+                                    ';:\'".,<>?«»“”‘’]))', re.IGNORECASE)
+
+    def _match_first_url(self, message):
+        """
+        Attempt to match the first URL in a supplied message
+
+        Args:
+            message(str): The message to search
+
+        Returns:
+            str or None
+        """
+        self.log.debug('Attempting to match the first URL in a message')
+        url = self.url_regex.search(message)
+        if url:
+            url = url.group(0)
+            self.log.info('URL match found, returning: ' + url)
+            return url
+
+        self.log.debug('No URL match found')
+        return None
+
+    def _fetch_partial_page(self, url, bytes=4096):
+        """
+        Attempt to download the first specified bytes of a web page
+
+        Args:
+            url(str): The URL to download
+            bytes(int): The size in bytes to download
+
+        Returns:
+            str or None
+        """
+        self.log.debug('Attempting to download the first {bytes} bytes of {url}'.format(bytes=bytes, url=url))
+        try:
+            page = urlopen(url, timeout=3).read(4096)
+        except HTTPError as e:
+            page = None
+            self.log.info('HTTP Error {code}: {reason}'.format(code=str(e.code), reason=str(e.reason)))
+        except URLError as e:
+            page = None
+            self.log.info('URL Error: ' + str(e.reason))
+
+        return page
+
+    def _get_title_from_page(self, page):
+        """
+        Fetch the title of an HTML web page
+
+        Args:
+            page(str): The HTML page to parse
+
+        Returns:
+            str or None
+        """
+        self.log.debug('Attempting to parse the HTML page title')
+        soup = BeautifulSoup(page)
+        title = soup.title.string
+
+        # Debug stuff
+        if title:
+            self.log.info('Found the title: ' + title)
+        else:
+            self.log.debug('No title found')
+
+        return title
+
+    def _format_title(self, url, title):
+        """
+        Format a specified title string
+
+        Args:
+            title(str): The title string to format
+
+        Returns:
+            str
+        """
+        title = 'Title: ' + title
+        host = urlparse(url).netloc
+        if host:
+            title += ' (at {host})'.format(host=host)
+
+        return title
+
+    def get_title_from_url(self, url, formatted=True):
+        """
+        Return the HTML web page title of the specified URL
+
+        Args:
+            url(str): The URL to parse
+
+        Returns:
+            str or None
+        """
+        # Attempt to download the first 4096 bytes of the web page
+        page = self._fetch_partial_page(url)
+        if not page:
+            return
+
+        # Fetch the title
+        title = self._get_title_from_page(page)
+
+        # Apply formatting
+        if formatted:
+            title = self._format_title(url, title)
+
+        # Return the title
+        return title
+
+    def get_title_from_message(self, message, formatted=True):
+        """
+        Parse a message for a URL and return the title of the page if found
+
+        Args:
+            message(str): The message to parse
+            formatted(bool): Apply formatting to the returned title string
+
+        Returns:
+            str or None
+        """
+        # Attempt to fetch the first URL in our message
+        url = self._match_first_url(message)
+        if not url:
+            return
+
+        # Fetch and return the title
+        return self.get_title_from_url(url, formatted)
