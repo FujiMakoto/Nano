@@ -38,7 +38,7 @@ class Commands:
         # Format the URL title?
         formatted = True
         if 'formatted' in opts:
-            if ['false', '0'] in opts['formatted'].lower():
+            if 'false' in opts['formatted'].lower():
                 formatted = False
 
         # Retrieve and return the title

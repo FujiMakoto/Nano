@@ -291,7 +291,7 @@ class Commander:
                     opts[arg] = argopt
                     continue
 
-                parsed_args.append(arg.lower())
+                parsed_args.append(arg)
 
             # Set our module and command
             if len(parsed_args):
