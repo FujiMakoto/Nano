@@ -67,6 +67,9 @@ class Commander:
         self.events = {}
         self.auth = Auth()
 
+        # Command trigger pattern
+        self.trigger_pattern = re.compile("^>>>( )?[a-zA-Z]+")
+
         # Option patterns
         self.short_opt_pattern = re.compile("^\-([a-zA-Z])$")
         self.long_opt_pattern  = re.compile('^\-\-([a-zA-Z]*)="?(.+)"?$')
@@ -313,6 +316,11 @@ class Commander:
         Returns:
             list
         """
+        # Make sure we're not executing a command
+        if self.trigger_pattern.match(event.arguments[0]):
+            self.log.debug('Not firing events for command request')
+            return
+
         self.log.debug('Firing ' + self._methodToName[event_name])
         replies = []
 
