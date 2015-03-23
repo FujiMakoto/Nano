@@ -4,7 +4,7 @@ net_irc.py: Establish an IRC connection
 """
 import logging
 from configparser import ConfigParser
-from net_irc import NanoIRC
+from src.nano_irc import NanoIRC
 from modules import Network, Channel
 # from database import DbSession
 # from database.models import Network, Channel

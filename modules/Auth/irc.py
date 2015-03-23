@@ -1,5 +1,5 @@
 import logging
-from validator import ValidationError
+from src.validator import ValidationError
 from ..User.exceptions import UserDoesNotExistsError
 from .module import Auth
 from .exceptions import *
@@ -106,7 +106,7 @@ class Events:
     """
     def __init__(self):
         """
-        Initialize a new auth Commands instance
+        Initialize a new Auth Events instance
         """
         self.auth = Auth()
         self.log = logging.getLogger('nano.modules.auth.irc.events')

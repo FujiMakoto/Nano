@@ -10,8 +10,8 @@ import irc.bot
 import irc.strings
 import irc.events
 from modules import Commander
-from language import Language
-from logger import IRCChannelLogger, IRCQueryLogger, IRCLoggerSource
+from .language import Language
+from .logger import IRCChannelLogger, IRCQueryLogger, IRCLoggerSource
 
 __author__     = "Makoto Fujikawa"
 __copyright__  = "Copyright 2015, Makoto Fujikawa"
@@ -549,7 +549,7 @@ class MessageParser:
     PURPLE = "06"
     ORANGE = "07"
     YELLOW = "08"
-    LIGHT_GREEN = "09"
+    LIME = "09"
     TEAL = "10"
     AQUA = "11"
     ROYAL = "12"
@@ -567,7 +567,7 @@ class MessageParser:
         'PURPLE': PURPLE,
         'ORANGE': ORANGE,
         'YELLOW': YELLOW,
-        'LIGHT_GREEN': LIGHT_GREEN,
+        'LIME': LIME,
         'TEAL': TEAL,
         'AQUA': AQUA,
         'ROYAL': ROYAL,
@@ -585,7 +585,7 @@ class MessageParser:
         PURPLE: 'PURPLE',
         ORANGE: 'ORANGE',
         YELLOW: 'YELLOW',
-        LIGHT_GREEN: 'LIGHT_GREEN',
+        LIME: 'LIME',
         TEAL: 'TEAL',
         AQUA: 'AQUA',
         ROYAL: 'ROYAL',
