@@ -1,9 +1,7 @@
-# !/usr/bin/env python3
 """
 net_irc.py: Establish a new IRC connection
 """
 import re
-import shlex
 import logging
 from ast import literal_eval
 from html.parser import unescape
@@ -43,7 +41,8 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         self.network = network
         self.channel = channel
         self.lang = Language()
-        self.command = Commander()
+        self.command = Commander(self)
+        self.message_parser = MessageParser()
         self.log = logging.getLogger('nano.irc')
 
         # Network feature list
@@ -52,10 +51,6 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         # Set up our channel and query loggers
         self.channel_logger = IRCChannelLogger(self, IRCLoggerSource(channel.name), bool(self.channel.log))
         self.query_loggers  = {}
-
-        # Patterns
-        self.command_pattern = re.compile("^>>>( )?[a-zA-Z]+")
-        self.response_pattern = re.compile("{'(.+)':\s?'(.+)'}")
 
     @staticmethod
     def config(network=None):
@@ -77,41 +72,17 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         """
         Execute an IRC command
         """
-        self.log.info('Executing command ' + command_string[0])
+        self.log.info('Executing command')
 
         # Attempt to execute the command
         try:
-            reply = self.command.execute(command_string, self, source, public)
-            return reply
+            reply = self.command.execute(command_string, source, public)
         except Exception as e:
             self.log.warn('Exception thrown when executing command "{cmd}": {exception}'
-                          .format(cmd=command_string[0], exception=str(e)))
-            return
+                          .format(cmd=command_string, exception=str(e)))
+            return None
 
-    def _parse_message(self, message):
-        """
-        Replace accepted HTML formatting with control codes and strip any excess HTML that remains
-
-        Args:
-            message(str): The message to parse
-
-        Returns:
-            str: The IRC formatted string
-        """
-        message = str(message)
-        self.log.debug('Parsing message response: ' + message)
-
-        # Parse bold text
-        message = re.sub("(<strong>|<\/strong>)", "\x02", message, 0, re.UNICODE)
-
-        # Strip any HTML formatting IRC protocol does not support
-        message = re.sub('<[^<]+?>', '', message)
-
-        # Unescape any HTML entities
-        message = unescape(message)
-
-        self.log.debug('Returning parsed message: ' + message)
-        return message
+        return reply
 
     def _deliver_messages(self, messages, source, channel, public=True):
         # Make sure we have a list of messages to iterate through
@@ -132,10 +103,11 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
 
                 # Call a requested command and loop back our response
                 if destination == "command":
-                    reply = self._execute_command(message, source, public)
-                    return self._deliver_messages(reply, source.nick, channel.name)
+                    message = self._execute_command(message, source, public)
+                    return self._deliver_messages(message, source, channel, public)
+                    # return self._deliver_messages(reply, source.nick, channel.name)
 
-                message = self._parse_message(message)
+                message = self.message_parser.html_to_irc(message)
 
                 # Where are we sending the message?
                 if destination == "private":
@@ -184,7 +156,7 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
                     self.connection.privmsg(default_destination, message)
             else:
                 # Default message
-                message = self._parse_message(message)
+                message = self.message_parser.html_to_irc(message)
                 if public:
                     self.channel_logger.log(self.channel_logger.MESSAGE, self.connection.get_nickname(),
                                             message=message)
@@ -394,7 +366,7 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         self.lang.set_name(source[1], e.source.nick)
 
         # Are we trying to call a command directly?
-        if self.command_pattern.match(e.arguments[0]):
+        if self.command.trigger_pattern.match(e.arguments[0]):
             self.log.info('Acknowledging public command request from ' + e.source.nick)
             reply = self._execute_command(e.arguments[0], e.source, True)
         else:
@@ -411,6 +383,12 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
             self._deliver_messages(reply, e.source, self.channel)
         else:
             self.log.debug('No response received')
+
+        # Fire our module events
+        event_replies = self.command.event(self.command.EVENT_PUBMSG, e)
+
+        if event_replies:
+            self._deliver_messages(event_replies, e.source, self.channel)
 
     def on_action(self, c, e):
         """
@@ -454,7 +432,7 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         self.lang.set_name(source[1], e.source.nick)
 
         # Are we trying to call a command directly?
-        if self.command_pattern.match(e.arguments[0]):
+        if self.command.trigger_pattern.match(e.arguments[0]):
             self.log.info('Acknowledging private command request from ' + e.source.nick)
             reply = self._execute_command(e.arguments[0], e.source, False)
         else:
@@ -521,6 +499,12 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
 
         self.channel_logger.log(self.channel_logger.QUIT, e.source.nick, e.source.host, e.arguments[0])
 
+        # Fire our module events
+        event_replies = self.command.event(self.command.EVENT_QUIT, e)
+
+        if event_replies:
+            self._deliver_messages(event_replies, e.source, self.channel)
+
     def on_kick(self, c, e):
         """
         Handle channel kick events
@@ -530,6 +514,159 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
             e(irc.client.Event): The event response data
         """
         pass
+
+
+class MessageParser:
+    """
+    Universal message parsing for IRC and web based protocols
+    """
+    # Contextual controls
+    BOLD = "\x02"
+    ITALICS = "\x1D"
+    UNDERLINE = "\x1F"
+    COLOR = "\x03"
+
+    _nameToContext = {
+        'BOLD': BOLD,
+        'ITALICS': ITALICS,
+        'UNDERLINE': UNDERLINE,
+        'COLOR': COLOR
+    }
+    _contextToName = {
+        BOLD: 'BOLD',
+        ITALICS: 'ITALICS',
+        UNDERLINE: 'UNDERLINE',
+        COLOR: 'COLOR'
+    }
+
+    # Color formatting codes
+    WHITE = "00"
+    BLACK = "01"
+    BLUE = "02"
+    GREEN = "03"
+    RED = "04"
+    BROWN = "05"
+    PURPLE = "06"
+    ORANGE = "07"
+    YELLOW = "08"
+    LIGHT_GREEN = "09"
+    TEAL = "10"
+    AQUA = "11"
+    ROYAL = "12"
+    PINK = "12"
+    GREY = "14"
+    SILVER = "15"
+
+    _nameToColor = {
+        'WHITE': WHITE,
+        'BLACK': BLACK,
+        'BLUE': BLUE,
+        'GREEN': GREEN,
+        'RED': RED,
+        'BROWN': BROWN,
+        'PURPLE': PURPLE,
+        'ORANGE': ORANGE,
+        'YELLOW': YELLOW,
+        'LIGHT_GREEN': LIGHT_GREEN,
+        'TEAL': TEAL,
+        'AQUA': AQUA,
+        'ROYAL': ROYAL,
+        'PINK': PINK,
+        'GREY': GREY,
+        'SILVER': SILVER
+    }
+    _colorToName = {
+        WHITE: 'WHITE',
+        BLACK: 'BLACK',
+        BLUE: 'BLUE',
+        GREEN: 'GREEN',
+        RED: 'RED',
+        BROWN: 'BROWN',
+        PURPLE: 'PURPLE',
+        ORANGE: 'ORANGE',
+        YELLOW: 'YELLOW',
+        LIGHT_GREEN: 'LIGHT_GREEN',
+        TEAL: 'TEAL',
+        AQUA: 'AQUA',
+        ROYAL: 'ROYAL',
+        PINK: 'PINK',
+        GREY: 'GREY',
+        SILVER: 'SILVER'
+    }
+
+    def __init__(self):
+        """
+        Initialize a new Message Parser instance
+        """
+        # Bold, Italics, Underline
+        self.html_bold = re.compile("(<strong>|<\/strong>)", re.UNICODE)
+        self.html_italics = re.compile("(<em>|<\/em>)", re.UNICODE)
+        self.html_underline = re.compile("(<u>|<\/u>)", re.UNICODE)
+
+        self.irc_bold = re.compile(self.BOLD, re.UNICODE)
+        self.irc_italics = re.compile(self.ITALICS, re.UNICODE)
+        self.irc_underline = re.compile(self.UNDERLINE, re.UNICODE)
+
+        # Color formatting
+        self.html_fg_color = re.compile("(?P<opening_tag><p(\s.*)?\sclass=[\"'](.*\s)?fg-(?P<fg_color>[A-Za-z]+)(\s.*)?"
+                                        "[\"'](\s.*)?>)(?P<message>.+)(?P<closing_tag><\/p>)", re.UNICODE)
+        self.html_bg_color = re.compile("(?P<opening_tag><p(\s.*)?\sclass=[\"'](.*\s)?bg-(?P<bg_color>[A-Za-z]+)(\s.*)?"
+                                        "[\"'](\s.*)?>)(?P<message>.+)(?P<closing_tag><\/p>)", re.UNICODE)
+
+    def html_to_irc(self, message):
+        """
+        Replaces HTML contextual formatting with IRC control codes
+
+        Args:
+            message(str): The message to format
+
+        Returns:
+            str
+        """
+        # Bold, Italics, Underline
+        message = self.html_bold.sub(self.BOLD, message)
+        message = self.html_italics.sub(self.ITALICS, message)
+        message = self.html_underline.sub(self.UNDERLINE, message)
+
+        # Match foreground / background colors
+        fg_match = self.html_fg_color.match(message)
+        bg_match = self.html_bg_color.match(message)
+
+        # Set foreground / background colors
+        fg_color = self.BLACK
+        bg_color = None
+
+        # Foreground
+        if fg_match:
+            fg_color_name = fg_match.group('fg_color').upper()
+            if fg_color_name in self._nameToColor:
+                fg_color = self._nameToColor[fg_color_name]
+        # Background
+        if bg_match:
+            bg_color_name = bg_match.group('bg_color').upper()
+            if bg_color_name in self._nameToColor:
+                bg_color = self._nameToColor[bg_color_name]
+
+        # Apply foreground / background colors
+        if fg_match or bg_match:
+            # Set the first available match to pull our message from later
+            color_match = fg_match if fg_match else bg_match
+
+            # Foreground and background or foreground only?
+            if bg_color:
+                message_template = "{color_ctrl}{fg_code},{bg_code}{message}{color_ctrl}"
+            else:
+                message_template = "{color_ctrl}{fg_code}{message}{color_ctrl}"
+
+            # Format the message template
+            message = message_template.format(color_ctrl=self.COLOR, fg_code=fg_color, bg_code=bg_color,
+                                              message=color_match.group('message'))
+
+        # Unescape HTML entities
+        message = unescape(message)
+
+        # Return the formatted message
+        return message
 
 
 class IRCFeatureList:
