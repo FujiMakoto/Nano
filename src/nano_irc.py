@@ -42,6 +42,7 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         self.channel = channel
         self.lang = Language()
         self.command = Commander(self)
+        self.postmaster = Postmaster(self)
         self.message_parser = MessageParser()
         self.log = logging.getLogger('nano.irc')
 
@@ -67,102 +68,6 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
             return config[network]
 
         return config
-
-    def _execute_command(self, command_string, source, public=True):
-        """
-        Execute an IRC command
-        """
-        self.log.info('Executing command')
-
-        # Attempt to execute the command
-        try:
-            reply = self.command.execute(command_string, source, public)
-        except Exception as e:
-            self.log.warn('Exception thrown when executing command "{cmd}": {exception}'
-                          .format(cmd=command_string, exception=str(e)))
-            return None
-
-        return reply
-
-    def _deliver_messages(self, messages, source, channel, public=True):
-        # Make sure we have a list of messages to iterate through
-        if not isinstance(messages, list):
-            messages = [messages]
-
-        # Are we returning to a public channel or query by default?
-        if not public:
-            default_destination = source.nick
-        else:
-            default_destination = channel.name
-
-        # Iterate through our messages
-        for message in messages:
-            if isinstance(message, dict):
-                # Split our destination and parse our message
-                destination, message = message.popitem()
-
-                # Call a requested command and loop back our response
-                if destination == "command":
-                    message = self._execute_command(message, source, public)
-                    return self._deliver_messages(message, source, channel, public)
-                    # return self._deliver_messages(reply, source.nick, channel.name)
-
-                message = self.message_parser.html_to_irc(message)
-
-                # Where are we sending the message?
-                if destination == "private":
-                    # Query message
-                    self.log.info('Sending query to ' + source.nick)
-                    self.connection.privmsg(source.nick, message)
-                elif destination == "private_notice":
-                    # Query notice
-                    self.log.info('Sending private notice to ' + source.nick)
-                    self.connection.notice(source.nick, message)
-                elif destination == "private_action":
-                    # Query action
-                    self.log.info('Sending query action to ' + source.nick)
-                    self.connection.action(source.nick, message)
-                elif destination == "public_action":
-                    # Channel action
-                    self.channel_logger.log(self.channel_logger.ACTION, self.connection.get_nickname(), message=message)
-                    self.log.info('Sending action to ' + channel.name)
-                    self.connection.action(channel.name, message)
-                elif destination == "public_notice":
-                    # Channel notice
-                    self.channel_logger.log(self.channel_logger.NOTICE, self.connection.get_nickname(), message=message)
-                    self.log.info('Sending notice to ' + channel.name)
-                    self.connection.notice(channel.name, message)
-                elif destination == "public":
-                    # Channel message
-                    self.channel_logger.log(self.channel_logger.MESSAGE, self.connection.get_nickname(),
-                                            message=message)
-                    self.log.info('Sending message to ' + channel.name)
-                    self.connection.privmsg(channel.name, message)
-                elif destination == "action":
-                    # Default action
-                    if public:
-                        self.channel_logger.log(self.channel_logger.ACTION, self.connection.get_nickname(),
-                                                message=message)
-
-                    self.log.info('Sending action to ' + channel.name)
-                    self.connection.action(default_destination, message)
-                else:
-                    # Default message
-                    if public:
-                        self.channel_logger.log(self.channel_logger.MESSAGE, self.connection.get_nickname(),
-                                                message=message)
-
-                    self.log.info('Sending message to ' + default_destination)
-                    self.connection.privmsg(default_destination, message)
-            else:
-                # Default message
-                message = self.message_parser.html_to_irc(message)
-                if public:
-                    self.channel_logger.log(self.channel_logger.MESSAGE, self.connection.get_nickname(),
-                                            message=message)
-
-                self.log.info('Sending message to ' + default_destination)
-                self.connection.privmsg(default_destination, message)
 
     def query_logger(self, source):
         """
@@ -380,7 +285,7 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
 
         if reply:
             self.log.debug('Delivering response messages')
-            self._deliver_messages(reply, e.source, self.channel)
+            self.postmaster.deliver(reply, e.source, self.channel)
         else:
             self.log.debug('No response received')
 
@@ -388,7 +293,7 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         event_replies = self.command.event(self.command.EVENT_PUBMSG, e)
 
         if event_replies:
-            self._deliver_messages(event_replies, e.source, self.channel)
+            self.postmaster.deliver(event_replies, e.source, self.channel)
 
     def on_action(self, c, e):
         """
@@ -446,7 +351,7 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
 
         if reply:
             self.log.debug('Delivering response messages')
-            self._deliver_messages(reply, e.source, self.channel, False)
+            self.postmaster.deliver(reply, e.source, self.channel, False)
         else:
             self.log.info(e.source.nick + ' sent me a query I didn\'t know how to respond to')
 
@@ -503,7 +408,7 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
         event_replies = self.command.event(self.command.EVENT_QUIT, e)
 
         if event_replies:
-            self._deliver_messages(event_replies, e.source, self.channel)
+            self.postmaster.deliver(event_replies, e.source, self.channel)
 
     def on_kick(self, c, e):
         """
@@ -667,6 +572,192 @@ class MessageParser:
 
         # Return the formatted message
         return message
+
+
+class Postmaster:
+    """
+    Handles message deliveries
+    """
+    # Explicit destinations
+    PRIVATE = "private"
+    PRIVATE_NOTICE = "private_notice"
+    PRIVATE_ACTION = "private_action"
+    PUBLIC = "public"
+    PUBLIC_NOTICE = "public_notice"
+    PUBLIC_ACTION = "public_action"
+
+    # Implicit destinations
+    ACTION = "action"
+
+    # Special destinations
+    COMMAND = "command"
+
+    _nameToDestination = {
+        'PRIVATE': PRIVATE,
+        'PRIVATE_NOTICE': PRIVATE_NOTICE,
+        'PRIVATE_ACTION': PRIVATE_ACTION,
+        'PUBLIC': PUBLIC,
+        'PUBLIC_NOTICE': PUBLIC_NOTICE,
+        'PUBLIC_ACTION': PUBLIC_ACTION,
+        'ACTION': ACTION,
+        'COMMAND': COMMAND
+    }
+    _destinationToName = {
+        PRIVATE: 'PRIVATE',
+        PRIVATE_NOTICE: 'PRIVATE_NOTICE',
+        PRIVATE_ACTION: 'PRIVATE_ACTION',
+        PUBLIC: 'PUBLIC',
+        PUBLIC_NOTICE: 'PUBLIC_NOTICE',
+        PUBLIC_ACTION: 'PUBLIC_ACTION',
+        ACTION: 'ACTION',
+        COMMAND: 'COMMAND'
+    }
+
+    def __init__(self, irc):
+        """
+        Initialize a new Postmaster instance
+
+        Args:
+            irc(NanoIRC): The active IRC connection
+        """
+        self.log = logging.getLogger('nano.irc.postmaster')
+        self.irc = irc
+        self.privmsg = getattr(irc.connection, 'privmsg')
+        self.notice = getattr(irc.connection, 'notice')
+        self.action = getattr(irc.connection, 'action')
+
+    def _get_handler(self, message):
+        """
+        Returns the message handler for the supplied message's destination
+
+        Args:
+            message(dict or str): The response message to parse
+
+        Returns:
+            (irc.client.privmsg, irc.client.notice or irc.client.action)
+        """
+        # Set the default handler and return if we have no explicit destination
+        default_handler = self.privmsg
+        if not isinstance(message, dict):
+            return default_handler
+
+        # Retrieve our message destination
+        destination, message = message.popitem()
+
+        # Channel / query responses
+        if destination in [self.PRIVATE, self.PUBLIC]:
+            self.log.debug('Setting the message handler to privmsg')
+            return self.privmsg
+
+        # Notice responses
+        if destination in [self.PRIVATE_NOTICE, self.PUBLIC_NOTICE]:
+            self.log.debug('Setting the message handler to notice')
+            return self.notice
+
+        # Action responses
+        if destination in [self.PRIVATE_ACTION, self.PUBLIC_ACTION, self.ACTION]:
+            self.log.debug('Setting the message handler to action')
+            return self.action
+
+        # Return our default handler if we don't recognize the request
+        return default_handler
+
+    def _get_destination(self, message, source, channel, public):
+        """
+        Returns the destination a supplied message should be delivered to
+
+        Args:
+            message(dict or str): The response message to parse
+            source(irc.client.NickMask): The NickMask of our client
+            channel(database.models.Channel): The channel we are currently active in
+            public(bool): Whether or not we are responding to a public message
+
+        Returns:
+            str
+        """
+        # Set the default destination and return if we have no explicit destination
+        default_destination = source.nick if not public else channel.name
+        if not isinstance(message, dict):
+            return default_destination
+
+        # Retrieve our message destination
+        destination, message = message.popitem()
+
+        # Debug logging stuff
+        if destination in self._destinationToName:
+            self.log.debug('Registering message destination as ' + self._destinationToName[destination])
+        else:
+            self.log.debug('Registering message destination as DEFAULT ({default})'.format(default=default_destination))
+
+        # If we're sending an implicit action, send it to our default destination
+        if destination is self.ACTION:
+            return default_destination
+
+        # If we're sending a command response, return COMMAND to trigger a firing event
+        if destination is self.COMMAND:
+            return self.COMMAND
+
+        # Send private responses to the clients nick
+        if destination in [self.PRIVATE, self.PRIVATE_NOTICE, self.PRIVATE_ACTION]:
+            return source.nick
+
+        # Send public responses to the active channel
+        if destination in [self.PUBLIC, self.PUBLIC_NOTICE, self.PUBLIC_ACTION]:
+            return channel.name
+
+        # Return our default destination if we don't recognize the request
+        return default_destination
+
+    def _fire_command(self, message, source, channel, public):
+        """
+        Fire a command and cycle back to deliver its response message(s)
+
+        Args:
+            messages(list, str or dict): The response message or "command string"
+            source(irc.client.NickMask): The NickMask of our client
+            channel(database.models.Channel): The channel we are currently active in
+            public(bool): Whether or not we are responding to a public message. Defaults to True
+        """
+        # Attempt to execute the command
+        self.log.info('Attempting to execute a command from a response message')
+        try:
+            reply = self.irc.command.execute(message, source, public)
+        except Exception as e:
+            self.log.warn('Exception thrown when executing command "{cmd}": {exception}'
+                          .format(cmd=message, exception=str(e)))
+            return
+
+        self.log.info('Cycling back to deliver a command response')
+        self.deliver(reply, source, channel, public)
+
+    def deliver(self, messages, source, channel, public=True):
+        """
+        Deliver supplied messages to their marked destinations and recipients
+
+        Args:
+            messages(list, str or dict): The message(s) to deliver
+            source(irc.client.NickMask): The NickMask of our client
+            channel(database.models.Channel): The channel we are currently active in
+            public(bool): Whether or not we are responding to a public message. Defaults to True
+        """
+        # Make sure we have a list of messages to iterate through
+        if not isinstance(messages, list):
+            messages = [messages]
+
+        # Iterate through our messages
+        for message in messages:
+            # Get our message handler and destination
+            handler = self._get_handler(message)
+            destination = self._get_destination(message, source, channel, public)
+
+            # Is our destination the command handler?
+            if destination is self.COMMAND:
+                self._fire_command(message, source, channel, public)
+                continue
+
+            # Deliver the message!
+            self.log.info('Delivering message')
+            handler(destination, message)
 
 
 class IRCFeatureList:
