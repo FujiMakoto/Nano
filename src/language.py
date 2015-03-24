@@ -2,6 +2,8 @@
 language.py: Nano language and response processing library
 """
 import re
+import logging
+from ast import literal_eval
 from configparser import ConfigParser
 from rivescript import RiveScript
 from modules.exceptions import ModuleDisabledError
@@ -20,13 +22,17 @@ class Language:
         """
         Initialize a new Language instance
         """
+        self.log = logging.getLogger('nano.language')
         # Load our language processing configuration
         self.config = self.config()
 
         # Initialize RiveScript
+        self.log.info('Initializing language engine')
         self.rs = RiveScript(self.config.getboolean('Language', 'Debug'))
         self.rs.load_directory("./lang")
         self.rs.sort_replies()
+        self.error_pattern = re.compile("(^ERR:)|(\[ERR:.*\])")
+        self.eval_pattern = re.compile("(^\(.+\)$|^\[.+\]$)")
 
     def get_reply(self, source, message):
         """
@@ -40,21 +46,37 @@ class Language:
             str or None
         """
         # Parse our message
+        self.log.info('Thinking of a reply to send to ' + source)
         message = self.parse_message(source, message)
 
+        # Request a reply to our message
         try:
             # Get our response message from RiveScript
             reply = self.rs.reply(source, message)
 
             # Make sure we didn't get an error in our response
-            error_pattern = re.compile("(^ERR:)|(\[ERR:.*\])")
-            if error_pattern.match(reply):
+            if self.error_pattern.match(reply):
+                self.log.debug('Received an ERROR response: ' + reply)
                 reply = None
         except (IndexError, ModuleDisabledError):
             # Either we matched a response but did not pass a variable check, or we requested a disabled module
+            self.log.info('A response was matched, but we failed to pass a conditional check to retrieve it')
             reply = None
 
+        # Evaluate our response into list/tuple form
+        if reply and self.eval_pattern.match(reply):
+            self.log.debug('Evaluating our response as a list or tuple')
+            try:
+                reply = literal_eval(reply)
+            except (SyntaxError, ValueError) as exception:
+                self.log.warn('Exception thrown when attempting to evaluate response: ' + str(exception))
+
         # Return our response
+        if reply:
+            self.log.info('Reply matched: ' + reply)
+        else:
+            self.log.info('Could not find a response to send')
+
         return reply
 
     def parse_message(self, source, message, parse_directed=True, strip_control_chars=True):

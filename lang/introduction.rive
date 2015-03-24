@@ -2,6 +2,7 @@
 + (@greetings) (@nicks)
 * <get name> != undefined => {random}
 ^ Hi, <get name>!|
+^ ('action', 'waves to <get name>')|
 ^ Hello <get name>|
 ^ Hi <get name>, how are you?{topic=how_are_you}|
 ^ Hi <get name>! How are you this evening?{topic=how_are_you}|

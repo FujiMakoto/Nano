@@ -50,7 +50,7 @@ class Commands:
             self.auth.attempt(args[0], args[1], str(source), irc.network)
             response = "You have successfully logged in as <strong>{login}</strong>".format(login=args[0])
             self.log.info('{nick} successfully authenticated as {login}'.format(nick=source.nick, login=args[0]))
-            return {'private_notice': response}
+            return 'private_notice', response
         except IndexError:
             self.log.info(source.nick + ' did not supply both an email and password when attempting to authenticate')
             return "You must specify an email and password to log in"

@@ -3,7 +3,6 @@ net_irc.py: Establish a new IRC connection
 """
 import re
 import logging
-from ast import literal_eval
 from html.parser import unescape
 from configparser import ConfigParser
 import irc.bot
@@ -276,12 +275,7 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
             reply = self._execute_command(e.arguments[0], e.source, True)
         else:
             self.log.debug('Querying language engine for a response to ' + e.source.nick)
-            raw_reply = self.lang.get_reply(source[1], e.arguments[0])
-            try:
-                reply = literal_eval(raw_reply)
-            except (SyntaxError, ValueError) as exception:
-                self.log.debug('Anticipated exception caught when requesting the response: ' + str(exception))
-                reply = raw_reply
+            reply = self.lang.get_reply(source[1], e.arguments[0])
 
         if reply:
             self.log.debug('Delivering response messages')
@@ -342,12 +336,7 @@ class NanoIRC(irc.bot.SingleServerIRCBot):
             reply = self._execute_command(e.arguments[0], e.source, False)
         else:
             self.log.debug('Querying language engine for a response to ' + e.source.nick)
-            raw_reply = self.lang.get_reply(source[1], e.arguments[0])
-            try:
-                reply = literal_eval(raw_reply)
-            except (SyntaxError, ValueError) as exception:
-                self.log.debug('Anticipated exception caught when requesting the response: ' + str(exception))
-                reply = raw_reply
+            reply = self.lang.get_reply(source[1], e.arguments[0])
 
         if reply:
             self.log.debug('Delivering response messages')
@@ -626,23 +615,25 @@ class Postmaster:
         self.notice = getattr(irc.connection, 'notice')
         self.action = getattr(irc.connection, 'action')
 
-    def _get_handler(self, message):
+    def _get_handler(self, response):
         """
         Returns the message handler for the supplied message's destination
 
         Args:
-            message(dict or str): The response message to parse
+            response(tuple or str): The response message to parse
 
         Returns:
             (irc.client.privmsg, irc.client.notice or irc.client.action)
         """
         # Set the default handler and return if we have no explicit destination
         default_handler = self.privmsg
-        if not isinstance(message, dict):
+        if not isinstance(response, tuple):
             return default_handler
 
         # Retrieve our message destination
-        destination, message = message.popitem()
+        # http://docs.python-guide.org/en/latest/writing/gotchas/#mutable-default-arguments
+        # destination, message = message.popitem()
+        destination, message = response
 
         # Channel / query responses
         if destination in [self.PRIVATE, self.PUBLIC]:
@@ -662,12 +653,12 @@ class Postmaster:
         # Return our default handler if we don't recognize the request
         return default_handler
 
-    def _get_destination(self, message, source, channel, public):
+    def _get_destination(self, response, source, channel, public):
         """
         Returns the destination a supplied message should be delivered to
 
         Args:
-            message(dict or str): The response message to parse
+            response(tuple or str): The response message to parse
             source(irc.client.NickMask): The NickMask of our client
             channel(database.models.Channel): The channel we are currently active in
             public(bool): Whether or not we are responding to a public message
@@ -677,11 +668,11 @@ class Postmaster:
         """
         # Set the default destination and return if we have no explicit destination
         default_destination = source.nick if not public else channel.name
-        if not isinstance(message, dict):
+        if not isinstance(response, tuple):
             return default_destination
 
         # Retrieve our message destination
-        destination, message = message.popitem()
+        destination, response = response
 
         # Debug logging stuff
         if destination in self._destinationToName:
@@ -690,11 +681,11 @@ class Postmaster:
             self.log.debug('Registering message destination as DEFAULT ({default})'.format(default=default_destination))
 
         # If we're sending an implicit action, send it to our default destination
-        if destination is self.ACTION:
+        if destination == self.ACTION:
             return default_destination
 
         # If we're sending a command response, return COMMAND to trigger a firing event
-        if destination is self.COMMAND:
+        if destination == self.COMMAND:
             return self.COMMAND
 
         # Send private responses to the clients nick
@@ -713,7 +704,7 @@ class Postmaster:
         Fire a command and cycle back to deliver its response message(s)
 
         Args:
-            messages(list, str or dict): The response message or "command string"
+            message(str): The response message or "command string"
             source(irc.client.NickMask): The NickMask of our client
             channel(database.models.Channel): The channel we are currently active in
             public(bool): Whether or not we are responding to a public message. Defaults to True
@@ -730,25 +721,45 @@ class Postmaster:
         self.log.info('Cycling back to deliver a command response')
         self.deliver(reply, source, channel, public)
 
-    def deliver(self, messages, source, channel, public=True):
+    def _parse_response_message(self, response):
+        """
+        Retrieve the message from a response and apply formatting to it
+
+        Args:
+            response(tuple or str): The response to retrieve a message from
+
+        Returns:
+            str
+        """
+        # Get our message from the response
+        message = response[1] if isinstance(response, tuple) else str(response)
+
+        # Format and return the message string
+        message = self.irc.message_parser.html_to_irc(message)
+        return message
+
+    def deliver(self, responses, source, channel, public=True):
         """
         Deliver supplied messages to their marked destinations and recipients
 
         Args:
-            messages(list, str or dict): The message(s) to deliver
+            responses(list, tuple or str): The message(s) to deliver
             source(irc.client.NickMask): The NickMask of our client
             channel(database.models.Channel): The channel we are currently active in
-            public(bool): Whether or not we are responding to a public message. Defaults to True
+            public(bool, optional): Whether or not we are responding to a public message. Defaults to True
         """
         # Make sure we have a list of messages to iterate through
-        if not isinstance(messages, list):
-            messages = [messages]
+        if not isinstance(responses, list):
+            responses = [responses]
 
         # Iterate through our messages
-        for message in messages:
+        for response in responses:
             # Get our message handler and destination
-            handler = self._get_handler(message)
-            destination = self._get_destination(message, source, channel, public)
+            handler = self._get_handler(response)
+            destination = self._get_destination(response, source, channel, public)
+
+            # Fetch a formatted message from the response
+            message = self._parse_response_message(response)
 
             # Is our destination the command handler?
             if destination is self.COMMAND:
