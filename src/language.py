@@ -1,6 +1,7 @@
 """
 language.py: Nano language and response processing library
 """
+import os
 import re
 import logging
 from ast import literal_eval
@@ -29,10 +30,46 @@ class Language:
         # Initialize RiveScript
         self.log.info('Initializing language engine')
         self.rs = RiveScript(self.config.getboolean('Language', 'Debug'))
-        self.rs.load_directory("./lang")
-        self.rs.sort_replies()
+        self._load_language_files()
         self.error_pattern = re.compile("(^ERR:)|(\[ERR:.*\])")
         self.eval_pattern = re.compile("(^\(.+\)$|^\[.+\]$)")
+
+    def _load_language_files(self):
+        self.log.info('Loading language files')
+        # Load the base language files
+        self.log.info('Loading base language files')
+        self.rs.load_directory("./lang")
+
+        # Loop through our modules directory
+        modules_dir = "modules"
+        lang_dir = "lang"
+        config_file = "module.cfg"
+        for name in os.listdir(modules_dir):
+            path = os.path.join(modules_dir, name)
+            # Loop through our sub-directories that are not private (i.e. __pycache__)
+            if os.path.isdir(path) and not name.startswith('_'):
+                # Check and see if this module has a commands file
+                module_lang_path = os.path.join(path, lang_dir)
+                if os.path.isdir(module_lang_path):
+                    # Check our module configuration file if it exists and make sure the module is enabled
+                    module_enabled = True
+                    config_path = os.path.join(path, config_file)
+                    if os.path.isfile(config_path):
+                        self.log.debug('Reading {module} configuration: {path}'.format(module=name, path=config_path))
+                        config = ConfigParser()
+                        config.read(os.path.join(path, config_file))
+                        if config.has_option('Module', 'Enabled'):
+                            module_enabled = config.getboolean('Module', 'Enabled')
+
+                    if module_enabled:
+                        self.log.info('Loading {module} language files'.format(module=name))
+                        self.rs.load_directory(module_lang_path)
+                    else:
+                        self.log.debug('Not loading {module} language files because the module is disabled'
+                                       .format(module=name))
+
+        self.log.info('Sorting language replies')
+        self.rs.sort_replies()
 
     def get_reply(self, source, message):
         """
@@ -73,7 +110,7 @@ class Language:
 
         # Return our response
         if reply:
-            self.log.info('Reply matched: ' + reply)
+            self.log.info('Reply matched: ' + str(reply))
         else:
             self.log.info('Could not find a response to send')
 
