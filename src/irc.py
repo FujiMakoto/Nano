@@ -19,8 +19,6 @@ class IRC:
         Args:
             channel(str):  The channel to join
             nickname(str): The nick to use
-            server(str):   The server to connect to
-            port(int):     The server port number
         """
         self.log = logging.getLogger('nano.irc')
 
@@ -29,7 +27,7 @@ class IRC:
         self.reactor = irc.client.Reactor()
 
         try:
-            self.connection = self.reactor.server().connect(network.host, network.port, 'Nano')
+            self.connection = self.reactor.server().connect(network.host, network.port, network.nick)
         except irc.client.ServerConnectionError as e:
             print(e)
             exit()
