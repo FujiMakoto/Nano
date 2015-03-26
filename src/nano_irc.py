@@ -84,6 +84,75 @@ class NanoIRC(IRC):
         self.query_loggers[source.nick] = IRCQueryLogger(self, IRCLoggerSource(source.nick, source.host))
         return self.query_loggers[source.nick]
 
+    def _log_message(self, event, log_format, public):
+        """
+        Log a channel or query event message
+
+        Args:
+            event(irc.client.Event): The IRC event instance
+            log_format(str): The log format to use
+            public(bool): This message was sent from a public channel
+        """
+        if public:
+            self.channel_logger.log(log_format, event.source.nick, event.source.host, event.arguments[0])
+        else:
+            logger = self.query_logger(event.source)
+            logger.log(log_format, IRCLoggerSource(event.source.nick, event.source.host), event.arguments[0])
+
+    def _get_replies(self, event, public):
+        """
+        Query available sources for a reply to an event message
+
+        Args:
+            event(irc.client.Event): The IRC event instance
+            public(bool): This message was sent from a public channel
+
+        Returns:
+            list, tuple, str or None
+        """
+        # Are we trying to call a command directly?
+        if self.command.trigger_pattern.match(event.arguments[0]):
+            self.log.info('Acknowledging {pub_or_priv} command request from {nick}'
+                          .format(pub_or_priv='public' if public else 'private', nick=event.source.nick))
+            return self.command.execute(event.arguments[0], event.source, True)
+
+        # Query the language engine for a response
+        self.lang.set_name(event.source.host, event.source.nick)
+
+        self.log.debug('Querying language engine for a response to ' + event.source.nick)
+        reply = self.lang.get_reply(event.source.host, event.arguments[0])
+
+        # Return our reply
+        return reply
+
+    def _handle_replies(self, event, replies=None, command_event=None):
+        """
+        Deliver event replies or fire module events if no replies have been received
+
+        Args:
+            event(irc.client.Event): The event instance
+            replies(list, tuple, str or None. Optional): The event replies to process
+            comment_event(str or None, Optional): The command event to trigger if there are no replies
+        """
+        if replies:
+            self.log.debug('Delivering response messages')
+            self.postmaster.deliver(replies, event.source, self.channel)
+        else:
+            self.log.debug('No response received')
+            if command_event:
+                self._fire_module_event(command_event, event)
+
+    def _fire_module_event(self, event_name, event):
+        """
+        Args:
+            event_name(str): The name of the event being fired
+            event(irc.client.Event): The IRC event instance
+        """
+        event_replies = self.command.event(event_name, event)
+
+        if event_replies:
+            self.postmaster.deliver(event_replies, event.source, self.channel)
+
     ################################
     # Numeric / Response Events    #
     ################################
@@ -262,35 +331,11 @@ class NanoIRC(IRC):
             event(irc.client.Event): The event response data
         """
         # Log the message
-        self.channel_logger.log(self.channel_logger.MESSAGE, event.source.nick, event.source.host, event.arguments[0])
+        self._log_message(event, self.channel_logger.MESSAGE, True)
 
-        # Get our hostmask to use as our name
-        source = str(event.source).split("@", 1)
-        self.lang.set_name(source[1], event.source.nick)
-        whois = self.connection.whois(event.source.nick)
-
-        # Are we trying to call a command directly?
-        if self.command.trigger_pattern.match(event.arguments[0]):
-            self.log.info('Acknowledging public command request from ' + event.source.nick)
-            reply = self._execute_command(event.arguments[0], event.source, True)
-        else:
-            self.log.debug('Querying language engine for a response to ' + event.source.nick)
-            reply = self.lang.get_reply(source[1], event.arguments[0])
-
-        if reply:
-            self.log.debug('Delivering response messages')
-            self.postmaster.deliver(reply, event.source, self.channel)
-        else:
-            self.log.debug('No response received')
-
-        # Fire our module events
-        event_replies = self.command.event(self.command.EVENT_PUBMSG, event)
-
-        if event_replies:
-            self.postmaster.deliver(event_replies, event.source, self.channel)
-
-    def on_whoisuser(self, connection, event):
-        print(event.arguments)
+        # Query for replies and fire module events
+        replies = self._get_replies(event, True)
+        self._handle_replies(event, replies, self.command.EVENT_PUBMSG)
 
     def on_action(self, connection, event):
         """
@@ -300,12 +345,17 @@ class NanoIRC(IRC):
             connection(irc.client.ServerConnection): The active IRC server connection
             event(irc.client.Event): The event response data
         """
+        # Was this action sent from a public channel or private query?
+        public = (event.target != connection.get_nickname)
+        command_event = self.command.EVENT_PUBACTION if public else self.command.EVENT_PRIVACTION
+        log_format = self.channel_logger.ACTION if public else self.query_logger(event.source).ACTION
+
         # Log the action
-        if event.target == connection.get_nickname():
-            logger = self.query_logger(event.source)
-            logger.log(logger.ACTION, IRCLoggerSource(event.source.nick, event.source.host), event.arguments[0])
-        else:
-            self.channel_logger.log(self.channel_logger.ACTION, event.source.nick, event.source.host, event.arguments[0])
+        self._log_message(event, log_format, public)
+
+        # Query for replies and fire module events
+        replies = self._get_replies(event, public)
+        self._handle_replies(event, replies, command_event)
 
     def on_public_notice(self, connection, event):
         """
@@ -315,7 +365,11 @@ class NanoIRC(IRC):
             connection(irc.client.ServerConnection): The active IRC server connection
             event(irc.client.Event): The event response data
         """
-        self.channel_logger.log(self.channel_logger.NOTICE, event.source.nick, event.source.host, event.arguments[0])
+        # Log the notice
+        self._log_message(event, self.channel_logger.NOTICE, True)
+
+        # Fire module events
+        self._handle_replies(event, command_event=self.command.EVENT_PUBNOTICE)
 
     def on_private_message(self, connection, event):
         """
@@ -326,26 +380,11 @@ class NanoIRC(IRC):
             event(irc.client.Event): The event response data
         """
         # Log the message
-        logger = self.query_logger(event.source)
-        logger.log(logger.MESSAGE, IRCLoggerSource(event.source.nick, event.source.host), event.arguments[0])
+        self._log_message(event, self.query_logger(event.source).MESSAGE, False)
 
-        # Get our hostmask to use as our name
-        source = str(event.source).split("@", 1)
-        self.lang.set_name(source[1], event.source.nick)
-
-        # Are we trying to call a command directly?
-        if self.command.trigger_pattern.match(event.arguments[0]):
-            self.log.info('Acknowledging private command request from ' + event.source.nick)
-            reply = self._execute_command(event.arguments[0], event.source, False)
-        else:
-            self.log.debug('Querying language engine for a response to ' + event.source.nick)
-            reply = self.lang.get_reply(source[1], event.arguments[0])
-
-        if reply:
-            self.log.debug('Delivering response messages')
-            self.postmaster.deliver(reply, event.source, self.channel, False)
-        else:
-            self.log.info(event.source.nick + ' sent me a query I didn\'t know how to respond to')
+        # Query for replies and fire module events
+        replies = self._get_replies(event, False)
+        self._handle_replies(event, replies, self.command.EVENT_PRIVMSG)
 
     def on_private_notice(self, connection, event):
         """
@@ -356,8 +395,10 @@ class NanoIRC(IRC):
             event(irc.client.Event): The event response data
         """
         # Log the notice
-        logger = self.query_logger(event.source)
-        logger.log(logger.NOTICE, IRCLoggerSource(event.source.nick, event.source.host), event.arguments[0])
+        self._log_message(event, self.query_logger(event.source).NOTICE, False)
+
+        # Fire module events
+        self._handle_replies(event, command_event=self.command.EVENT_PRIVNOTICE)
 
     def on_join(self, connection, event):
         """
