@@ -73,6 +73,33 @@ class PluginManager:
 
         return False
 
+    def get(self, name):
+        """
+        Return an instance of the specified plugin
+
+        Args:
+            name(str): The name of the plugin to retrieve
+
+        Returns:
+            method
+
+        Raises:
+            PluginNotLoadedError: Raised when attempting to get a plugin that does not exist or hasn't been loaded
+        """
+        if name in self.plugins:
+            return self.plugins[name]
+
+        raise PluginNotLoadedError('The requested plugin, "{name}", has not been loaded'.format(name=name))
+
+    def all(self):
+        """
+        Returns the plugins dictionary
+
+        Returns:
+            dict
+        """
+        return self.plugins
+
 
 class Plugin:
     """
@@ -200,3 +227,7 @@ class Plugin:
         Returns the plugin's name when the plugin instance is called as a string
         """
         return self.name
+
+
+class PluginNotLoadedError(Exception):
+    pass
