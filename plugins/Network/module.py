@@ -79,7 +79,7 @@ class Network:
 
         raise MissingArgumentsError("You must specify either a network name or host to retrieve")
 
-    def create(self, name, host, port=6667, server_password=None, nick="Nano", nick_password=None, has_services=True,
+    def create(self, name, host, port=6667, server_password=None, nick=None, user_password=None, has_services=True,
                autojoin=True):
         """
         Create a new network
@@ -87,7 +87,7 @@ class Network:
         Args:
             name(str): The name/alias for the network
             host(str): The host to connect to
-            port(int): The port number to connect to
+            port(int, optional): The port number to connect to. Defaults to 6667
             server_password(str, optional): The server password (if required). Defaults to None
             nick(str, optional): A custom IRC nick to use on this server. Defaults to None
             nick_password(str, optional): The password used to identify to network services. Defaults to None
@@ -99,7 +99,7 @@ class Network:
         """
         # Set up a new Network Model
         new_network = NetworkModel(name=name, host=host, port=port, server_password=server_password, nick=nick,
-                                   nick_password=nick_password, has_services=has_services, autojoin=autojoin)
+                                   user_password=user_password, has_services=has_services, autojoin=autojoin)
 
         # Insert the new network into our database
         self.dbs.add(new_network)

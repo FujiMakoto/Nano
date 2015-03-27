@@ -1,3 +1,4 @@
+import logging
 from math import ceil
 from configparser import ConfigParser
 from .PyGoogle import PyGoogle
@@ -12,8 +13,9 @@ class Google:
         Initialize a new Google instance
         """
         # Get the module configuration
+        self.log = logging.getLogger('nano.modules.google')
         self.config = ConfigParser()
-        self.config.read('modules/Google/module.cfg')
+        self.config.read('plugins/Google/module.cfg')
         self.enabled = self.config.getboolean('Module', 'Enabled')
         self.result_limit = self.config.getint('Search', 'MaxResults')
 
@@ -30,6 +32,7 @@ class Google:
         """
         # Set up PyGoogle and fetch our results
         max_results = min(max_results, self.result_limit)
+        self.log.info('Retrieving {max} results for the search query: {query}'.format(max=max_results, query=query))
         pages = ceil(max_results / 8)
         google = PyGoogle(query, pages)
         results = google.search()
@@ -55,6 +58,7 @@ class Google:
         Returns:
             str
         """
+        self.log.debug('Formatting search result: ' + str(result))
         for title, url in result.items():
             return "<strong>" + title + "</strong>: " + url
 
@@ -68,6 +72,7 @@ class Google:
         Returns:
             str
         """
+        self.log.info('Executing Google search query')
         # Are we actually requesting a lucky search?
         if max_results == 1:
             return self.lucky(query)
@@ -88,6 +93,7 @@ class Google:
         return ' | '.join(formatted_results)
 
     def lucky(self, query):
+        self.log.info('Executing Google lucky query')
         """
         Perform a Google search on the specified query and return the first result only
 

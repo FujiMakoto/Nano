@@ -61,7 +61,7 @@ class Events:
         self.url = URL()
         self.log = logging.getLogger('nano.modules.url.irc.events')
         self.config = ConfigParser()
-        self.config.read('modules/URL/module.cfg')
+        self.config.read('plugins/URL/module.cfg')
         self.parse_messages = self.config.getboolean('URL', 'AutoParseTitles')
 
     def on_public_message(self, event, irc):

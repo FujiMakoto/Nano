@@ -30,7 +30,7 @@ class Commands:
         """
         self.log = logging.getLogger('nano.modules.dictionary.irc.commands')
         self.config = ConfigParser()
-        self.config.read('modules/Dictionary/module.cfg')
+        self.config.read('plugins/Dictionary/module.cfg')
         self.dictionary = Dictionary(self.config['MerriamWebster']['ApiKey'])
         self.max_limit = self.config.getint('Dictionary', 'MaxDefinitions')
         self.max_default = self.config.getint('Dictionary', 'DefaultMaxDefinitions')

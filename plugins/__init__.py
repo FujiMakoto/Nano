@@ -6,4 +6,3 @@ from .Math import *
 from .Network import *
 from .URL import *
 from .User import *
-from .commander import Commander

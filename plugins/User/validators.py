@@ -1,5 +1,5 @@
 from voluptuous import Schema, Required, All, Length, MultipleInvalid
-from validator import Validator, ValidationError
+from src.validator import Validator, ValidationError
 
 __author__     = "Makoto Fujikawa"
 __copyright__  = "Copyright 2015, Makoto Fujikawa"

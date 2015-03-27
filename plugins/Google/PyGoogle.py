@@ -66,7 +66,7 @@ class PyGoogle:
 
     def __init__(self, query, pages=None, hl='en'):
         self.config = ConfigParser()
-        self.config.read('modules/Google/module.cfg')
+        self.config.read('plugins/Google/module.cfg')
         self.pages  = pages or ceil(self.config.getint('Search', 'DefaultResults') / 8)
         self.query  = query
         self.filter = int(self.config.getboolean('Search', 'FilterDuplicates'))

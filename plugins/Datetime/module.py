@@ -1,7 +1,7 @@
 import datetime
 import logging
 import configparser
-from modules.exceptions import ModuleDisabledError
+from plugins.exceptions import ModuleDisabledError
 
 
 class Datetime():
@@ -11,7 +11,7 @@ class Datetime():
         """
         # Get the module configuration
         self.config  = configparser.ConfigParser()
-        self.config.read('modules/Datetime/module.cfg')
+        self.config.read('plugins/Datetime/module.cfg')
         self.enabled = self.config.getboolean('Module', 'Enabled')
         self.log     = logging.getLogger('nano.modules.datetime')
         self.now     = datetime.datetime.now()
