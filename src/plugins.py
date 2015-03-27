@@ -18,6 +18,7 @@ class PluginManager:
         """
         Initialize a new Plugin Manager instance
         """
+        self.log = logging.getLogger('nano.plugin_manager')
         self.plugins = {}
 
         # Load our system plugins path
@@ -33,6 +34,8 @@ class PluginManager:
             including_disabled(bool, optional): Loads disabled plugins when True. Defaults to False
         """
         # Load a list of available plugins
+        self.log.info('Loading all {status} plugins'
+                      .format(status='enabled' if not including_disabled else 'enabled and disabled'))
         plugin_list = [name for __, name, ispkg in pkgutil.iter_modules([self.plugins_base_path]) if ispkg]
 
         # Loop through our list and load our available plugins
@@ -44,6 +47,7 @@ class PluginManager:
             # Load any subplugins
             subplugin_list = [name for __, name, ispkg in pkgutil.iter_modules([plugin_path]) if ispkg]
             for subplugin_name in subplugin_list:
+                self.log.debug('Loading subplugins for: ' + plugin_name)
                 subplugin_path = os.path.join(plugin_path, subplugin_name)
                 self.load_plugin('.'.join([plugin_name, subplugin_name]), subplugin_path)
 
@@ -55,6 +59,7 @@ class PluginManager:
             name(str): The name of the plugin to load
             path(str): The directory path of the plugin being loaded
         """
+        self.log.info('[LOAD] ' + name)
         self.plugins[name.lower()] = Plugin(name, self.plugins_base_path, path)
 
     def unload_plugin(self, name):
@@ -67,11 +72,26 @@ class PluginManager:
         Returns:
             None or bool: Returns False if we attempt to unload a plugin that wasn't actually loaded
         """
-        if name in self.plugins:
-            del self.plugins[name]
+        self.log.info('Unloading plugin: ' + name)
+        if self.is_loaded(name):
+            del self.plugins[name.lower()]
             return
 
+        self.log.warn('Attempted to unload a plugin that was not actually loaded')
         return False
+
+    def is_loaded(self, name):
+        """
+        Returns True if the specified plugin is loaded, otherwise False
+
+        Args:
+            name(str): The name of the plugin to check
+
+        Returns:
+            bool
+        """
+        self.log.debug('Checking whether the plugin "{name}" is loaded or not'.format(name=name))
+        return name.lower() in self.plugins
 
     def get(self, name):
         """
@@ -86,6 +106,7 @@ class PluginManager:
         Raises:
             PluginNotLoadedError: Raised when attempting to get a plugin that does not exist or hasn't been loaded
         """
+        self.log.info('Requesting the "{name}" plugin'.format(name=name))
         if name.lower() in self.plugins:
             return self.plugins[name.lower()]
 
@@ -98,6 +119,7 @@ class PluginManager:
         Returns:
             dict
         """
+        self.log.info('Returning all loaded plugins')
         return self.plugins
 
 
@@ -141,7 +163,7 @@ class Plugin:
         Args:
             name(str): Name of the module to import
         """
-        self.log.debug('Loading module: ' + self.name)
+        self.log.debug('Loading plugin: ' + self.name)
         # See if we have a Commands class, and import it into our commands list if so
         if hasattr(self.module_import, 'Commands'):
             self.log.debug('Loading {module} Commands'.format(module=self.name))
@@ -226,6 +248,7 @@ class Plugin:
         """
         Returns the plugin's name when the plugin instance is called as a string
         """
+        self.log.debug('Plugin "{name}" requested as a string, returning the name of the plugin'.format(name=self.name))
         return self.name
 
 
