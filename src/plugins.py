@@ -55,7 +55,7 @@ class PluginManager:
             name(str): The name of the plugin to load
             path(str): The directory path of the plugin being loaded
         """
-        self.plugins[name] = Plugin(name, self.plugins_base_path, path)
+        self.plugins[name.lower()] = Plugin(name, self.plugins_base_path, path)
 
     def unload_plugin(self, name):
         """
@@ -86,8 +86,8 @@ class PluginManager:
         Raises:
             PluginNotLoadedError: Raised when attempting to get a plugin that does not exist or hasn't been loaded
         """
-        if name in self.plugins:
-            return self.plugins[name]
+        if name.lower() in self.plugins:
+            return self.plugins[name.lower()]
 
         raise PluginNotLoadedError('The requested plugin, "{name}", has not been loaded'.format(name=name))
 
