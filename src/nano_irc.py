@@ -77,12 +77,13 @@ class NanoIRC(IRC):
             logger.IRCQueryLogger
         """
         # Do we already have a query logging instance for this user?
-        if source.nick in self.query_loggers:
-            return self.query_loggers[source.nick]
+        logger_formatted_nick = str(source.nick).lower().capitalize()
+        if logger_formatted_nick in self.query_loggers:
+            return self.query_loggers[logger_formatted_nick]
 
         # Set up a new query logger instance
-        self.query_loggers[source.nick] = IRCQueryLogger(self, IRCLoggerSource(source.nick, source.host))
-        return self.query_loggers[source.nick]
+        self.query_loggers[logger_formatted_nick] = IRCQueryLogger(self, IRCLoggerSource(source.nick, source.host))
+        return self.query_loggers[logger_formatted_nick]
 
     def _log_message(self, event, log_format, public):
         """

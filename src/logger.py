@@ -240,7 +240,7 @@ class IRCQueryLogger(_IRCLogger):
 
         # Set our base path
         self.base_path    = str(self.config['IRC']['LogPath']).rstrip("/") + "/%s/queries/" % self.irc.network.name
-        self.logfile_name = self.source.name + ".log"
+        self.logfile_name = str(self.source.name).lower().capitalize() + ".log"
         self.logfile_path = self.base_path + self.logfile_name
 
         # Make sure our logfile directory exists
