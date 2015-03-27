@@ -290,13 +290,12 @@ class IRCQueryLogger(_IRCLogger):
             hostmask = "localhost"
 
         # Do we have a command string we need to filter?
-        if self.redact_command_args and message and self.irc.command.trigger_pattern.match(message):
+        if self.redact_command_args and message and self.irc.commander.trigger_pattern.match(message):
             # Parse our command string and re-format it into a filtered message
-            module, command, args, opts = self.irc.command.parse_command_string(message)
-            if module and command:
-                message = ">>> {module} {command}".format(module=module, command=command)
-                if len(args) or len(opts):
-                    message += " [** Command arguments redacted **]"
+            message, filtered = self.irc.commander.filter_command_string(message)
+
+            if filtered:
+                message += " [** Command arguments redacted **]"
 
         # Yo dawg
         self.debug_log.debug('Logging PRIV_{type} from {nick}'

@@ -309,3 +309,58 @@ class Commander:
 
         self.log.debug('Returning event replies: ' + str(replies))
         return replies
+
+    def filter_command_string(self, command_string):
+        """
+        Returns a filtered command string (for safe logging, stripping potentially sensitive data such as passwords)
+
+        Args:
+            command_string(str): The command string to filter
+
+        Returns:
+            tuple: (0: command_string, 1: filtered)
+        """
+        # Strip our command trigger
+        command_string = command_string.lstrip('>>>').strip()
+
+        # Parse our command string into names, arguments and options
+        try:
+            # Attempt to retrieve our actual plugin and command values
+            args, opts = self._parse_command_string(command_string)
+            plugin, command, args, help_command = self._parse_command_arguments(args)
+            self.log.info('Filtering a valid command string')
+
+            # If this was a help request, we don't need to filter anything
+            if help_command:
+                return '>>> ' + command_string, False
+
+            # Set the filtered command string
+            command_string = '>>> {plugin} {command}'.format(plugin=plugin, command=command)
+
+            # If we don't have any arguments, don't consider the string filtered (options are intentionally ignored)
+            filtered = bool(len(args))
+            return command_string, filtered
+        except PluginNotLoadedError:
+            # Even though this was an invalid command request, we should still filter primarily in case of typos
+            # Just shlex split the string and set the first two arguments as the plugin and command respectively
+            self.log.info('Attempting to filter an invalid command string')
+            args = shlex.split(command_string)
+
+            # "Plugin"
+            if len(args):
+                plugin = args.pop(0)
+            else:
+                plugin = ''
+
+            # "Command"
+            if len(args):
+                command = args.pop(0)
+            else:
+                command = ''
+
+            command_string = '>>> {plugin} {command}'.format(plugin=plugin, command=command)
+
+            # If we still have excess arguments, this command string should be considered filtered
+            filtered = bool(len(args))
+
+            return command_string, filtered
