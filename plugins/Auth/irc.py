@@ -1,13 +1,13 @@
 import logging
 from src.validator import ValidationError
 from ..User.exceptions import UserDoesNotExistsError
-from .module import Auth
+from .plugin import Auth
 from .exceptions import *
 
 
 class Commands:
     """
-    IRC Commands for the Auth module
+    IRC Commands for the Auth plugin
     """
     commands_help = {
         'main': [
@@ -32,10 +32,10 @@ class Commands:
 
     def __init__(self):
         """
-        Initialize a new auth Commands instance
+        Initialize a new Auth Commands instance
         """
         self.auth = Auth()
-        self.log = logging.getLogger('nano.modules.auth.irc.commands')
+        self.log = logging.getLogger('nano.plugins.auth.irc.commands')
 
     def command_login(self, args, opts, irc, source, public, **kwargs):
         """
@@ -102,14 +102,14 @@ class Commands:
 
 class Events:
     """
-    IRC Events for the Auth module
+    IRC Events for the Auth plugin
     """
     def __init__(self):
         """
         Initialize a new Auth Events instance
         """
         self.auth = Auth()
-        self.log = logging.getLogger('nano.modules.auth.irc.events')
+        self.log = logging.getLogger('nano.plugins.auth.irc.events')
 
     def on_quit(self, event, irc):
         """

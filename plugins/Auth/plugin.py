@@ -14,7 +14,7 @@ __maintainer__ = "Makoto Fujikawa"
 class Auth:
     def __init__(self):
         """
-        Initialize a new Auth instance
+        Initialize a new Auth Plugin instance
         """
         self.session = AuthSession()
         self.validate_user = UserValidators()
