@@ -6,7 +6,6 @@ from configparser import ConfigParser
 from .irc import IRC
 from .irc_utils import MessageParser, Postmaster
 from src.commander import Commander
-from .language import Language
 from .logger import IRCChannelLogger, IRCQueryLogger, IRCLoggerSource
 
 __author__     = "Makoto Fujikawa"
@@ -143,7 +142,7 @@ class NanoIRC(IRC):
 
     def _handle_replies(self, event, replies=None, public=True, command_event=None):
         """
-        Deliver event replies or fire module events if no replies have been received
+        Deliver event replies or fire plugin events if no replies have been received
 
         Args:
             event(irc.client.Event): The event instance
@@ -156,9 +155,9 @@ class NanoIRC(IRC):
         else:
             self.log.debug('No response received')
             if command_event:
-                self._fire_module_event(command_event, event)
+                self._fire_plugin_event(command_event, event)
 
-    def _fire_module_event(self, event_name, event):
+    def _fire_plugin_event(self, event_name, event):
         """
         Args:
             event_name(str): The name of the event being fired
@@ -349,7 +348,7 @@ class NanoIRC(IRC):
         # Log the message
         self._log_message(event, self.channel_logger.MESSAGE, True)
 
-        # Query for replies and fire module events
+        # Query for replies and fire plugin events
         replies = self._get_replies(event, True)
         self._handle_replies(event, replies, True, self.commander.EVENT_PUBMSG)
 
@@ -369,7 +368,7 @@ class NanoIRC(IRC):
         # Log the action
         self._log_message(event, log_format, public)
 
-        # Query for replies and fire module events
+        # Query for replies and fire plugin events
         replies = self._get_replies(event, public)
         self._handle_replies(event, replies, public, command_event)
 
@@ -384,7 +383,7 @@ class NanoIRC(IRC):
         # Log the notice
         self._log_message(event, self.channel_logger.NOTICE, True)
 
-        # Fire module events
+        # Fire plugin events
         self._handle_replies(event, public=True, command_event=self.commander.EVENT_PUBNOTICE)
 
     def on_private_message(self, connection, event):
@@ -398,7 +397,7 @@ class NanoIRC(IRC):
         # Log the message
         self._log_message(event, self.query_logger(event.source).MESSAGE, False)
 
-        # Query for replies and fire module events
+        # Query for replies and fire plugin events
         replies = self._get_replies(event, False)
         self._handle_replies(event, replies, False, self.commander.EVENT_PRIVMSG)
 
@@ -413,7 +412,7 @@ class NanoIRC(IRC):
         # Log the notice
         self._log_message(event, self.query_logger(event.source).NOTICE, False)
 
-        # Fire module events
+        # Fire plugin events
         self._handle_replies(event, public=False, command_event=self.commander.EVENT_PRIVNOTICE)
 
     def on_join(self, connection, event):
@@ -453,7 +452,7 @@ class NanoIRC(IRC):
 
         self.channel_logger.log(self.channel_logger.QUIT, event.source.nick, event.source.host, event.arguments[0])
 
-        # Fire our module events
+        # Fire plugin events
         event_replies = self.commander.event(self.commander.EVENT_QUIT, event)
 
         if event_replies:
