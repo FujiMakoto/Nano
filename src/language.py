@@ -7,7 +7,6 @@ import logging
 from ast import literal_eval
 from configparser import ConfigParser
 from rivescript import RiveScript
-from plugins.exceptions import ModuleDisabledError
 
 __author__     = "Makoto Fujikawa"
 __copyright__  = "Copyright 2015, Makoto Fujikawa"
@@ -88,8 +87,8 @@ class Language:
             if self.error_pattern.match(reply):
                 self.log.debug('Received an ERROR response: ' + reply)
                 reply = None
-        except (IndexError, ModuleDisabledError):
-            # Either we matched a response but did not pass a variable check, or we requested a disabled module
+        except IndexError:
+            # We matched a response but did not pass a variable check
             self.log.info('A response was matched, but we failed to pass a conditional check to retrieve it')
             reply = None
 

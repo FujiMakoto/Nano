@@ -1,2 +1,0 @@
-class ModuleDisabledError(Exception):
-    pass
