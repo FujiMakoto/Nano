@@ -1,1 +1,1 @@
-from .module import Channel
+from .plugin import Channel

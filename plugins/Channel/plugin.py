@@ -1,9 +1,9 @@
 from database import DbSession
 from database.models import Channel as ChannelModel
 
-__author__ = "Makoto Fujikawa"
-__copyright__ = "Copyright 2015, Makoto Fujikawa"
-__version__ = "1.0.0"
+__author__     = "Makoto Fujikawa"
+__copyright__  = "Copyright 2015, Makoto Fujikawa"
+__version__    = "1.0.0"
 __maintainer__ = "Makoto Fujikawa"
 
 
