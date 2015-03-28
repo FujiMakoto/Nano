@@ -1,6 +1,6 @@
 import logging
 from configparser import ConfigParser
-from .module import URL
+from .plugin import URL
 
 __author__     = "Makoto Fujikawa"
 __copyright__  = "Copyright 2015, Makoto Fujikawa"
@@ -10,7 +10,7 @@ __maintainer__ = "Makoto Fujikawa"
 
 class Commands:
     """
-    IRC Commands for the URL module
+    IRC Commands for the URL plugin
     """
     commands_help = {
         'main': [
@@ -29,7 +29,7 @@ class Commands:
         Initialize a new auth Commands instance
         """
         self.url = URL()
-        self.log = logging.getLogger('nano.modules.url.irc.commands')
+        self.log = logging.getLogger('nano.plugins.url.irc.commands')
 
     def command_title(self, args, opts, irc, source, public, **kwargs):
         """
@@ -52,16 +52,16 @@ class Commands:
 
 class Events:
     """
-    IRC Events for the URL module
+    IRC Events for the URL plugin
     """
     def __init__(self):
         """
         Initialize a new URL Events instance
         """
         self.url = URL()
-        self.log = logging.getLogger('nano.modules.url.irc.events')
+        self.log = logging.getLogger('nano.plugins.url.irc.events')
         self.config = ConfigParser()
-        self.config.read('plugins/URL/module.cfg')
+        self.config.read('plugins/URL/plugin.cfg')
         self.parse_messages = self.config.getboolean('URL', 'AutoParseTitles')
 
     def on_public_message(self, event, irc):

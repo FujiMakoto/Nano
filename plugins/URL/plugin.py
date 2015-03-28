@@ -17,9 +17,9 @@ class URL:
     """
     def __init__(self):
         """
-        Initialize a new URL module instance
+        Initialize a new URL Plugin instance
         """
-        self.log = logging.getLogger('nano.modules.url')
+        self.log = logging.getLogger('nano.plugins.url')
         # URL matching regex
         # http://daringfireball.net/2010/07/improved_regex_for_matching_urls
         self.url_regex = re.compile('((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s'
