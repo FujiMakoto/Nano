@@ -26,6 +26,7 @@ def upgrade():
         sa.Column('hostmask', sa.String(500), nullable=False),
         sa.Column('reason', sa.String(255)),
         sa.Column('banned_by_user_id', sa.Integer, sa.ForeignKey('users.id')),
+        sa.Column('ban_mode', sa.SmallInteger, default=1),
         sa.Column('ban_length', sa.Integer),
         sa.Column('expires', sa.DateTime)
     )

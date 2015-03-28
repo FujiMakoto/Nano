@@ -25,8 +25,9 @@ def upgrade():
         sa.Column('port', sa.SmallInteger, default=6667),
         sa.Column('server_password', sa.String(255)),
         sa.Column('nick', sa.String(50)),
-        sa.Column('nick_password', sa.String(255)),
         sa.Column('has_services', sa.Boolean()),
+        sa.Column('user_password', sa.String(255)),
+        sa.Column('auth_method', sa.String(25), default="NICKSERV"),
         sa.Column('autojoin', sa.Boolean(), default=True)
     )
 

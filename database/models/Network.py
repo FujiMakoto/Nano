@@ -23,6 +23,6 @@ class Network(Base):
     port = Column(SmallInteger)
     server_password = Column(String(255))
     nick = Column(String(50))
-    nick_password = Column(String(255))
+    user_password = Column(String(255))
     has_services = Column(Boolean)
     autojoin = Column(Boolean)
