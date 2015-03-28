@@ -1,2 +1,2 @@
-from .module import User
+from .plugin import User
 from .validators import UserValidators
