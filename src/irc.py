@@ -17,8 +17,8 @@ class IRC:
         Initialize a new IRC instance
 
         Args:
-            channel(str):  The channel to join
-            nickname(str): The nick to use
+            network(database.models.Network): The IRC Network to connect to
+            channel(database.models.channel): The channel to join
         """
         self.log = logging.getLogger('nano.irc')
 

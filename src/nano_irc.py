@@ -21,27 +21,42 @@ class NanoIRC(IRC):
     Establishes a new connection to the configured IRC server
     """
 
-    def __init__(self, network, channel):
+    def __init__(self, network, channel, plugins=None, language=None):
         """
         Initialize a new Nano IRC instance
 
         Args:
-            channel(str):  The channel to join
-            nickname(str): The nick to use
-            server(str):   The server to connect to
-            port(int):     The server port number
+            network(database.models.Network): The IRC Network to connect to
+            channel(database.models.channel): The channel to join
+            plugins(src.plugins.PluginManager or None, optional):
+                Plugins to bind to this Network instance. Defaults to None (no plugins)
+            language(src.language.Language or None, optional):
+                Language engine to bind to this Network instance: Defaults to None (no language parsing)
         """
         super().__init__(network, channel)
-        # Load our configuration
-
         # Setup
+        self.log = logging.getLogger('nano.irc')
         self.network = network
         self.channel = channel
-        self.lang = Language()
+
+        # Bind plugins
+        if plugins:
+            self.log.debug('Binding plugins to Network {name} ({id})'.format(name=network.name, id=id(plugins)))
+        else:
+            self.log.debug('Not binding any plugins to Network {name}'.format(name=network.name))
+        self.plugins = plugins
+
+        # Bind language
+        if language:
+            self.log.debug('Binding language to Network {name} ({id})'.format(name=network.name, id=id(language)))
+        else:
+            self.log.debug('Not binding any language to Network {name}'.format(name=network.name))
+        self.lang = language
+
+        # Set up our Commander, Postmaster and MessageParser instances
         self.commander = Commander(self)
         self.postmaster = Postmaster(self)
         self.message_parser = MessageParser()
-        self.log = logging.getLogger('nano.irc')
 
         # Network feature list
         self.network_features = {}

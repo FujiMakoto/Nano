@@ -66,10 +66,6 @@ class Commander:
         self.short_opt_pattern = re.compile("^\-([a-zA-Z])$")
         self.long_opt_pattern  = re.compile('^\-\-([a-zA-Z]*)="?(.+)"?$')
 
-        # Load all plugins
-        self.plugins = PluginManager()
-        self.plugins.load_all()
-
     def _execute(self, command, module, args, opts, source, public, command_prefix='command_'):
         """
         Handle execution of the specified command
@@ -89,7 +85,7 @@ class Commander:
         # Get our commands class name for the requested module
         module = module.lower()
         try:
-            command = self.plugins.get(module).get_irc_command(command, command_prefix)
+            command = self.irc.plugins.get(module).get_irc_command(command, command_prefix)
             if callable(command):
                 return command(args, opts, self.irc, source, public)
         except PluginNotLoadedError:
@@ -111,9 +107,9 @@ class Commander:
         plugin = plugin.lower()
         commands_help = None
 
-        if self.plugins.is_loaded(plugin):
+        if self.irc.plugins.is_loaded(plugin):
             # Load the commands class and check if a help dictionary exists in it
-            commands_class = self.plugins.get(plugin).commands_class
+            commands_class = self.irc.plugins.get(plugin).commands_class
             if hasattr(commands_class, 'commands_help'):
                 commands_help = commands_class.commands_help
 
@@ -211,13 +207,13 @@ class Commander:
             help_command = True
 
         # Do we have a valid plugin or subplugin for this request?
-        if args_len and self.plugins.is_loaded(args_lower[0]):
+        if args_len and self.irc.plugins.is_loaded(args_lower[0]):
             self.log.debug('Plugin matched: ' + args_lower[0])
             plugin = args_lower[0]
             del args[0]
         if args_len >= 2:
             subplugin = '.'.join([args_lower[0], args_lower[1]])
-            if self.plugins.is_loaded(subplugin):
+            if self.irc.plugins.is_loaded(subplugin):
                 self.log.debug('Subplugin matched: ' + subplugin)
                 plugin = subplugin
                 del args[0]
@@ -299,7 +295,7 @@ class Commander:
 
         # Loop through and execute our events
         replies = []
-        for plugin_name, plugin in self.plugins.all().items():
+        for plugin_name, plugin in self.irc.plugins.all().items():
             if plugin.has_irc_events():
                 event_method = plugin.get_irc_event(event_name)
                 if callable(event_method):

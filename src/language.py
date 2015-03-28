@@ -7,7 +7,7 @@ import logging
 from ast import literal_eval
 from configparser import ConfigParser
 from rivescript import RiveScript
-from modules.exceptions import ModuleDisabledError
+from plugins.exceptions import ModuleDisabledError
 
 __author__     = "Makoto Fujikawa"
 __copyright__  = "Copyright 2015, Makoto Fujikawa"
@@ -19,13 +19,17 @@ class Language:
     """
     Performs various language processing related tasks
     """
-    def __init__(self):
+    def __init__(self, plugins=None):
         """
         Initialize a new Language instance
+
+        Args:
+            plugins(src.plugins.PluginManager or None, optional): Plugins to load language files from. Defaults to None
         """
         self.log = logging.getLogger('nano.language')
         # Load our language processing configuration
         self.config = self.config()
+        self.plugins = plugins
 
         # Initialize RiveScript
         self.log.info('Initializing language engine')
@@ -35,38 +39,22 @@ class Language:
         self.eval_pattern = re.compile("(^\(.+\)$|^\[.+\]$)")
 
     def _load_language_files(self):
+        """
+        Load available language files
+        """
         self.log.info('Loading language files')
-        # Load the base language files
-        self.log.info('Loading base language files')
-        self.rs.load_directory("./lang")
 
-        # Loop through our modules directory
-        modules_dir = "modules"
-        lang_dir = "lang"
-        config_file = "module.cfg"
-        for name in os.listdir(modules_dir):
-            path = os.path.join(modules_dir, name)
-            # Loop through our sub-directories that are not private (i.e. __pycache__)
-            if os.path.isdir(path) and not name.startswith('_'):
-                # Check and see if this module has a commands file
-                module_lang_path = os.path.join(path, lang_dir)
-                if os.path.isdir(module_lang_path):
-                    # Check our module configuration file if it exists and make sure the module is enabled
-                    module_enabled = True
-                    config_path = os.path.join(path, config_file)
-                    if os.path.isfile(config_path):
-                        self.log.debug('Reading {module} configuration: {path}'.format(module=name, path=config_path))
-                        config = ConfigParser()
-                        config.read(os.path.join(path, config_file))
-                        if config.has_option('Module', 'Enabled'):
-                            module_enabled = config.getboolean('Module', 'Enabled')
+        # Load the system language files
+        self.log.info('Loading system language files')
+        self.rs.load_directory(self.config['Language']['SystemPath'])
 
-                    if module_enabled:
-                        self.log.info('Loading {module} language files'.format(module=name))
-                        self.rs.load_directory(module_lang_path)
-                    else:
-                        self.log.debug('Not loading {module} language files because the module is disabled'
-                                       .format(module=name))
+        # Load plugin language files
+        if self.plugins:
+            for plugin_name, plugin in self.plugins.all().items():
+                plugin_lang_path = os.path.join(plugin.plugin_path, 'lang')
+                if os.path.isdir(plugin_lang_path):
+                    self.log.info('Loading {plugin} language files'.format(plugin=plugin.name))
+                    self.rs.load_directory(plugin_lang_path)
 
         self.log.info('Sorting language replies')
         self.rs.sort_replies()
@@ -82,6 +70,11 @@ class Language:
         Returns:
             str or None
         """
+        # Make sure we have a valid source
+        if not source:
+            self.log.warn('Ignoring message from an invalid message source')
+            return
+
         # Parse our message
         self.log.info('Thinking of a reply to send to ' + source)
         message = self.parse_message(source, message)
@@ -180,5 +173,5 @@ class Language:
             ConfigParser
         """
         config = ConfigParser()
-        config.read("config/language.cfg")
+        config.read("config/system.cfg")
         return config
