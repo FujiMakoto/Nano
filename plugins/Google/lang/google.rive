@@ -1,8 +1,14 @@
-+ (@nicks) [can you|will you|please] [please] google (*)
++ (@nicks) [can you|will you] [please] google (*)
 - ('command', 'google lucky <star2>')
 
-+ (@nicks) [can you|will you|please] [please] fetch the first search result for (*)
++ (@nicks) [can you|will you] [please] lucky [google] search (*)
 - ('command', 'google lucky <star2>')
 
-+ (@nicks) [can you|will you|please] [please] fetch the first (#) search results for (*)
-- ('command', 'google search --results="<star2>" <star4>')
++ (@nicks) [can you|will you] [please] fetch the first [google] search result for (*)
+- ('command', 'google lucky <star2>')
+
++ (@nicks) [can you|will you] [please] (get|fetch|retrieve|return) the first (#) [google] search results for (*)
+- ('command', 'google search --results="<star3>" <star5>')
+
++ [can you|will you] [please] fetch the first (#) search results for (*)
+* <get directed> == True => {@ Nano, fetch the first <star1> search results for <star2>}
