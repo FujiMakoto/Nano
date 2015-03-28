@@ -46,7 +46,7 @@ class URL:
         self.log.debug('No URL match found')
         return None
 
-    def _fetch_partial_page(self, url, bytes=4096):
+    def _fetch_partial_page(self, url, page_bytes=8192):
         """
         Attempt to download the first specified bytes of a web page
 
@@ -57,10 +57,10 @@ class URL:
         Returns:
             str or None
         """
-        # Download the first 4KB of the web page
-        self.log.debug('Attempting to download the first {bytes} bytes of {url}'.format(bytes=bytes, url=url))
+        # Download the first <bytes> of the web page
+        self.log.debug('Attempting to download the first {bytes} bytes of {url}'.format(bytes=page_bytes, url=url))
         try:
-            page = urlopen(url, timeout=3).read(4096)
+            page = urlopen(url, timeout=3).read(page_bytes)
         except HTTPError as e:
             page = None
             self.log.info('HTTP Error {code}: {reason}'.format(code=str(e.code), reason=str(e.reason)))
@@ -81,8 +81,10 @@ class URL:
             str or None
         """
         self.log.debug('Attempting to parse the HTML page title')
+        title = None
         soup = BeautifulSoup(page)
-        title = soup.title.string
+        if soup.title:
+            title = soup.title.string
 
         # Debug stuff
         if title:
@@ -132,7 +134,7 @@ class URL:
         title = self._get_title_from_page(page)
 
         # Apply formatting
-        if formatted:
+        if formatted and title:
             title = self._format_title(url, title)
 
         # Return the title
