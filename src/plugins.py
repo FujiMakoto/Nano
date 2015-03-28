@@ -47,7 +47,7 @@ class PluginManager:
             # Load any subplugins
             subplugin_list = [name for __, name, ispkg in pkgutil.iter_modules([plugin_path]) if ispkg]
             for subplugin_name in subplugin_list:
-                self.log.debug('Loading subplugins for: ' + plugin_name)
+                self.log.debug('Loading subplugin for: ' + plugin_name)
                 subplugin_path = os.path.join(plugin_path, subplugin_name)
                 self.load_plugin('.'.join([plugin_name, subplugin_name]), subplugin_path)
 
@@ -59,8 +59,21 @@ class PluginManager:
             name(str): The name of the plugin to load
             path(str): The directory path of the plugin being loaded
         """
+        # Load our plugin configuration
+        plugin_enabled = True
+        plugin_config = self.load_plugin_config(path)
+        if isinstance(plugin_config, ConfigParser) and plugin_config.has_option('Plugin', 'Enabled'):
+            plugin_enabled = plugin_config.getboolean('Plugin', 'Enabled')
+
+        # Make sure the plugin is not disabled before trying to load it
+        if not plugin_enabled:
+            self.log.debug('Refusing to load a disabled plugin: ' + name)
+            self.log.info('[SKIP] ' + name)
+            return
+
+        # Load the plugin and add it to our plugins dictionary
         self.log.info('[LOAD] ' + name)
-        self.plugins[name.lower()] = Plugin(name, self.plugins_base_path, path)
+        self.plugins[name.lower()] = Plugin(name, self.plugins_base_path, path, plugin_config)
 
     def unload_plugin(self, name):
         """
@@ -79,6 +92,27 @@ class PluginManager:
 
         self.log.warn('Attempted to unload a plugin that was not actually loaded')
         return False
+
+    @staticmethod
+    def load_plugin_config(plugin_path):
+        """
+        Load and read a plugin configuration file (if one is available)
+
+        Args:
+            plugin_path(str): The filesystem path to the plugin
+
+        Returns:
+            configparser.ConfigParser or None
+        """
+        # Make sure a configuration file for this plugin exists
+        config_path = os.path.join(plugin_path, 'plugin.cfg')
+        if not os.path.isfile(config_path):
+            return
+
+        # Load and return a ConfigParser instance
+        config = ConfigParser()
+        config.read(config_path)
+        return config
 
     def is_loaded(self, name):
         """
@@ -127,7 +161,7 @@ class Plugin:
     """
     Plugin handler
     """
-    def __init__(self, name, plugins_base_path, plugin_path):
+    def __init__(self, name, plugins_base_path, plugin_path, config):
         """
         Initialize a new Plugin instance
 
@@ -135,6 +169,7 @@ class Plugin:
             name(str): The module name of the plugin to load
             plugins_base_path(str): The base directory for all system plugins
             plugin_path(str): The directory path of the plugin being loaded
+            config(configparser.ConfigParser): The Plugin configuration
         """
         # Set up the universal plugin logger
         self.log = logging.getLogger('nano.plugin')
@@ -143,8 +178,9 @@ class Plugin:
         self.plugins_base_path = plugins_base_path
         self.plugin_path = plugin_path
 
-        # Set the plugin name and class placeholders
+        # Set the plugin name, configuration and class placeholders
         self.name = name
+        self.config = config
         self.commands_class = None
         self.events_class = None
 
@@ -220,7 +256,7 @@ class Plugin:
             return getattr(self.commands_class, command_prefix + command_name)
 
         # Otherwise return None
-        self.log.debug('{prefix}{command_name} if not a registered command for {module_name}'
+        self.log.debug('{prefix}{command_name} is not a registered command for {module_name}'
                        .format(prefix=command_prefix, command_name=command_name, module_name=self.name))
         return
 
