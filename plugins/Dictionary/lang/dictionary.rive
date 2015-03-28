@@ -1,0 +1,5 @@
++ (@nicks) [what is|find|look up|retrieve|return] the definition of (*)
+- ('command', 'dictionary define <star1>')
+
++ (@nicks) define [the word] (*)
+- ('command', 'dictionary define <star1>')
