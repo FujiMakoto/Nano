@@ -1,1 +1,1 @@
-from .module import Network
+from .plugin import Network
