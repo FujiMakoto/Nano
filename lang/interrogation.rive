@@ -1,5 +1,5 @@
 > object age python
-    from modules.Datetime import Datetime
+    from plugins.Datetime import Datetime
     dt = Datetime()
     return dt.how_long_ago(" ".join(args))
 < object

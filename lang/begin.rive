@@ -11,7 +11,7 @@
 // Generic Variables
 ! var name     = Nano
 ! var epoch    = 1425044111
-! var birthday = Febuary 27th
+! var birthday = February 27th
 ! var sex      = female
 ! var location = The United States
 //! var eyes     = blue
@@ -34,6 +34,16 @@
 ! sub /         = divided by
 ! sub *         = times
 ! sub ^         = to the power of
+! sub one       = 1
+! sub two       = 2
+! sub three     = 3
+! sub four      = 4
+! sub five      = 5
+! sub six       = 6
+! sub seven     = 7
+! sub eight     = 8
+! sub nine      = 9
+! sub ten       = 10
 ! sub i'm       = i am
 ! sub i'd       = i would
 ! sub i've      = i have
@@ -141,7 +151,7 @@
 ! sub >:(       = angry
 ! sub >:o       = angry
 
-! array nicks = nano|nano nano|nanochan|nanosan
+! array nicks = nano|nano nano|nano nano nano|nanochan|nanosan
 ! array positive_moods = content|playful|happy|loving
 ! array negative_moods = annoyed|scared|confused|embarrassed|irritated|lonely|melancholic|overwhelmed|rejected
 

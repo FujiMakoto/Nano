@@ -102,10 +102,10 @@
 > topic how_are_you
 
 	+ [*] (okay|alright|fine|decent|not bad) [*]
-	- {weight=3}That's good to hear, I hope the rest of your day goes well!{topic=random}
+	- {weight=3}That's good to hear!{topic=random}
 	- {weight=2}Only <star>?{topic=random}
 	- That's good to hear.{topic=random}
-	- Just <star>? I hope the rest of your day goes well!{topic=random}
+	- Just <star>?{topic=random}
 
 	+ [*] (good|great|wonderful|happy|awesome|brilliant) [*]
 	- {weight=3}That's great to hear, I hope the rest of your day is <star> as well!{topic=random}
@@ -118,13 +118,13 @@
 	- I hope you feel better soon.{topic=random}
 
 	+ [*] (angry|mad|frustrated|aggravated|annoyed|pissed off|furious|infuriated) [*]
-	- A-ahh, I'm sorry to hear that, what's got you in a bad mood..?
+	- Ahh, I'm sorry to hear that, what's got you in a bad mood?
 	- I'm sorry, I hope you feel better soon.
 	- Ahh.. I'm sorry to hear that, try and relax a bit, I hope you feel better!
 
 	+ [*] (sick|flu|nauseous) [*]
 	- Being sick is no fun! I hope you get better soon!{topic=random}
-	- Guah, I don't know what being sick feels like, but it doesn't look fun. I hope your health improves soon!{topic=random}
+	- Guah, I don't know what being sick feels like, but it doesn't seem fun. I hope your health improves soon!{topic=random}
 	- I'm sorry you're feeling sick, I hope you feel better soon!{topic=random}
 	- That's no good, be sure to get plenty of rest and I'm sure you'll recover soon!{topic=random}
 
