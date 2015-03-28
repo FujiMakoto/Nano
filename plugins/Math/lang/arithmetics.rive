@@ -1,5 +1,5 @@
 > object math python
-    from modules.Math import NumericStringParser
+    from plugins.Math import NumericStringParser
     nsp = NumericStringParser()
     return nsp.eval(" ".join(args))
 < object

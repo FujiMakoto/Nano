@@ -22,9 +22,9 @@ class NumericStringParser(object):
             self.exprStack.append('unary -')
 
     def __init__(self):
-        # Get the module configuration
+        # Get the plugin configuration
         self.config = configparser.ConfigParser()
-        self.config.read('modules/Math/module.cfg')
+        self.config.read('plugins/Math/plugin.cfg')
 
         """
         expop   :: '^'
@@ -103,10 +103,6 @@ class NumericStringParser(object):
             return float(op)
 
     def eval(self, num_string, parseAll=True):
-        # Is the module enabled?
-        if not self.config.getboolean('Module', 'Enabled'):
-            return
-
         # Replace language strings with arithmetic operators
         num_string = num_string.replace("plus", "+")
         num_string = num_string.replace("minus", "-")

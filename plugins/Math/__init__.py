@@ -1,1 +1,1 @@
-from .module import NumericStringParser
+from .plugin import NumericStringParser
