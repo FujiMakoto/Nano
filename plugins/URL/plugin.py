@@ -57,6 +57,7 @@ class URL:
         Returns:
             str or None
         """
+        # Download the first 4KB of the web page
         self.log.debug('Attempting to download the first {bytes} bytes of {url}'.format(bytes=bytes, url=url))
         try:
             page = urlopen(url, timeout=3).read(4096)
@@ -118,6 +119,10 @@ class URL:
         Returns:
             str or None
         """
+        # Make sure our URL has a valid schema
+        if not re.match('^https?://.+', url):
+            url = 'http://' + url
+
         # Attempt to download the first 4096 bytes of the web page
         page = self._fetch_partial_page(url)
         if not page:
