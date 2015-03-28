@@ -13,9 +13,9 @@ class Dictionary:
     """
     def __init__(self, api_key=None):
         """
-        Initialize a new Dictionary module instance
+        Initialize a new Dictionary Plugin instance
         """
-        self.log = logging.getLogger('nano.modules.dictionary')
+        self.log = logging.getLogger('nano.plugins.dictionary')
         self.dictionary = CollegiateDictionary(api_key)
 
     def define(self, word, max_definitions=3):

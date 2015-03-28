@@ -1,6 +1,6 @@
 import logging
 from configparser import ConfigParser
-from .module import Dictionary
+from .plugin import Dictionary
 
 __author__     = "Makoto Fujikawa"
 __copyright__  = "Copyright 2015, Makoto Fujikawa"
@@ -10,7 +10,7 @@ __maintainer__ = "Makoto Fujikawa"
 
 class Commands:
     """
-    IRC Commands for the Dictionary module
+    IRC Commands for the Dictionary plugin
     """
     commands_help = {
         'main': [
@@ -28,9 +28,9 @@ class Commands:
         """
         Initialize a new Dictionary Commands instance
         """
-        self.log = logging.getLogger('nano.modules.dictionary.irc.commands')
+        self.log = logging.getLogger('nano.plugins.dictionary.irc.commands')
         self.config = ConfigParser()
-        self.config.read('plugins/Dictionary/module.cfg')
+        self.config.read('plugins/Dictionary/plugin.cfg')
         self.dictionary = Dictionary(self.config['MerriamWebster']['ApiKey'])
         self.max_limit = self.config.getint('Dictionary', 'MaxDefinitions')
         self.max_default = self.config.getint('Dictionary', 'DefaultMaxDefinitions')
