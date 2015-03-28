@@ -4,7 +4,7 @@ from . import Datetime
 
 class Commands:
     """
-    IRC Commands for the Datetime module
+    IRC Commands for the Datetime plugin
     """
     commands_help = {
         'main': [
@@ -26,7 +26,7 @@ class Commands:
         Initialize a new Datetime Commands instance
         """
         self.datetime = Datetime()
-        self.log = logging.getLogger('nano.modules.datetime.irc.commands')
+        self.log = logging.getLogger('nano.plugins.datetime.irc.commands')
 
     def command_date(self, args, opts, irc, source, public, **kwargs):
         """

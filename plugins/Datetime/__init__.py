@@ -1,2 +1,2 @@
-from .module import Datetime
+from .plugin import Datetime
 from .irc import Commands

@@ -1,7 +1,6 @@
 import datetime
 import logging
 import configparser
-from plugins.exceptions import ModuleDisabledError
 
 
 class Datetime():
@@ -9,16 +8,12 @@ class Datetime():
         """
         Initialize a new Datetime instance
         """
-        # Get the module configuration
+        # Get the plugin configuration
         self.config  = configparser.ConfigParser()
-        self.config.read('plugins/Datetime/module.cfg')
-        self.enabled = self.config.getboolean('Module', 'Enabled')
-        self.log     = logging.getLogger('nano.modules.datetime')
+        self.config.read('plugins/Datetime/plugin.cfg')
+        self.enabled = self.config.getboolean('Plugin', 'Enabled')
+        self.log     = logging.getLogger('nano.plugins.datetime')
         self.now     = datetime.datetime.now()
-
-        # Is the module enabled?
-        if not self.enabled:
-            raise ModuleDisabledError
 
 
     @staticmethod
@@ -38,10 +33,6 @@ class Datetime():
         Returns:
             str
         """
-        # Is the module enabled?
-        if not self.enabled:
-            return
-
         self.log.debug('Returning the day')
         day = self.now.strftime("%-d")
         return day + self.suffix(int(day))
@@ -53,10 +44,6 @@ class Datetime():
         Returns:
             str
         """
-        # Is the module enabled?
-        if not self.enabled:
-            return
-
         self.log.debug('Returning the week')
         return self.now.strftime("%A")
 
@@ -67,10 +54,6 @@ class Datetime():
         Returns:
             str
         """
-        # Is the module enabled?
-        if not self.enabled:
-            return
-
         self.log.debug('Returning the month')
         return self.now.strftime("%B")
 
@@ -81,10 +64,6 @@ class Datetime():
         Returns:
             str
         """
-        # Is the module enabled?
-        if not self.enabled:
-            return
-
         self.log.debug('Returning the year')
         return self.now.strftime("%Y")
 
@@ -108,10 +87,6 @@ class Datetime():
         Returns:
             str
         """
-        # Is the module enabled?
-        if not self.enabled:
-            return
-
         time = self.now.strftime("%-I:%M %p")
 
         # Are we suffixing the time zone to our result?
@@ -132,10 +107,6 @@ class Datetime():
         Returns:
             str
         """
-        # Is the module enabled?
-        if not self.enabled:
-            return
-
         now_epoch = self.now.timestamp()
         epoch     = int(epoch)
 
