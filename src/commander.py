@@ -1,7 +1,7 @@
 import re
 import shlex
 import logging
-from src.plugins import PluginManager, PluginNotLoadedError
+from src.plugins import PluginNotLoadedError
 from plugins import Auth
 
 __author__     = "Makoto Fujikawa"
@@ -56,7 +56,7 @@ class Commander:
         """
         # Initialize commander
         self.irc = irc
-        self.log = logging.getLogger('nano.modules.commander')
+        self.log = logging.getLogger('nano.irc.commander')
         self.auth = Auth()
 
         # Command trigger pattern
@@ -66,13 +66,13 @@ class Commander:
         self.short_opt_pattern = re.compile("^\-([a-zA-Z])$")
         self.long_opt_pattern  = re.compile('^\-\-([a-zA-Z]*)="?(.+)"?$')
 
-    def _execute(self, command, module, args, opts, source, public, command_prefix='command_'):
+    def _execute(self, command, plugin, args, opts, source, public, command_prefix='command_'):
         """
         Handle execution of the specified command
 
         Args:
             command(str): Name of the command to execute
-            module(str): Name of the module
+            plugin(str): Name of the plugin
             args(list): The command arguments
             opts(dict): The command options
             source(str): Hostmask of the requesting client
@@ -82,10 +82,9 @@ class Commander:
         Returns:
             list, tuple, str or None: Returns replies to send to the client, or None if nothing should be returned
         """
-        # Get our commands class name for the requested module
-        module = module.lower()
+        # Get our commands class name for the requested plugin
         try:
-            command = self.irc.plugins.get(module).get_irc_command(command, command_prefix)
+            command = self.irc.plugins.get(plugin).get_irc_command(command, command_prefix)
             if callable(command):
                 return command(args, opts, self.irc, source, public)
         except PluginNotLoadedError:
@@ -103,8 +102,7 @@ class Commander:
         Returns:
             str, dict, list or None: The help entry, or None if no help entry exists
         """
-        # Get our commands class name for the requested module
-        plugin = plugin.lower()
+        # Get our commands class name for the requested plugin
         commands_help = None
 
         if self.irc.plugins.is_loaded(plugin):
@@ -277,7 +275,7 @@ class Commander:
 
     def event(self, event_name, event):
         """
-        Fire IRC events for loaded modules
+        Fire IRC events for loaded plugins
 
         Args:
             event_name(str): The name of the event being fired
