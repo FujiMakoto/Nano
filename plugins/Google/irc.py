@@ -1,10 +1,10 @@
 import logging
-from .module import Google
+from .plugin import Google
 
 
 class Commands:
     """
-    IRC Commands for the Google module
+    IRC Commands for the Google plugin
     """
     commands_help = {
         'main': [
@@ -28,7 +28,7 @@ class Commands:
         Initialize a new auth Commands instance
         """
         self.google = Google()
-        self.log = logging.getLogger('nano.modules.google')
+        self.log = logging.getLogger('nano.plugins.google')
 
     def command_search(self, args, opts, irc, source, public, **kwargs):
         """

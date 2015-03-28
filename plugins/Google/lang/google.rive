@@ -1,8 +1,3 @@
-> object lucky python
-    from modules.Google import Google
-    return Google.lucky(" ".join(args))
-< object
-
 + (@nicks) [can you|will you|please] [please] google (*)
 - ('command', 'google lucky <star2>')
 

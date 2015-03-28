@@ -12,11 +12,11 @@ class Google:
         """
         Initialize a new Google instance
         """
-        # Get the module configuration
-        self.log = logging.getLogger('nano.modules.google')
+        # Get the plugin configuration
+        self.log = logging.getLogger('nano.plugins.google')
         self.config = ConfigParser()
-        self.config.read('plugins/Google/module.cfg')
-        self.enabled = self.config.getboolean('Module', 'Enabled')
+        self.config.read('plugins/Google/plugin.cfg')
+        self.enabled = self.config.getboolean('Plugin', 'Enabled')
         self.result_limit = self.config.getint('Search', 'MaxResults')
 
     def _search(self, query, max_results):
