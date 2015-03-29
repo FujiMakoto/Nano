@@ -205,7 +205,7 @@ class Postmaster:
         Initialize a new Postmaster instance
 
         Args:
-            irc(NanoIRC): The active IRC connection
+            irc(src.NanoIRC): The active IRC connection
         """
         self.log = logging.getLogger('nano.irc.postmaster')
         self.irc = irc
@@ -221,7 +221,7 @@ class Postmaster:
             response(tuple or str): The response message to parse
 
         Returns:
-            (irc.client.privmsg, irc.client.notice or irc.client.action)
+            (irc.client.privmsg), irc.client.notice or irc.client.action)
         """
         # Set the default handler and return if we have no explicit destination
         default_handler = self.privmsg

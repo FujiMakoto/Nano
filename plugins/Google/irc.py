@@ -35,7 +35,7 @@ class Commands:
         Perform a search query and returns the top results
 
         Args:
-            command(src.commander.Command): The IRC command instance
+            command(src.Command): The IRC command instance
             irc(src.NanoIRC): The IRC connection instance
         """
         # How many results are we retrieving?
@@ -50,7 +50,7 @@ class Commands:
         Perform a search query and return the first result
 
         Args:
-            command(src.commander.Command): The IRC command instance
+            command(src.Command): The IRC command instance
             irc(src.NanoIRC): The IRC connection instance
         """
         return self.google.lucky(' '.join(command.args))

@@ -33,7 +33,7 @@ class Commands:
         Return the current formatted date
 
         Args:
-            command(src.commander.Command): The IRC command instance
+            command(src.Command): The IRC command instance
             irc(src.NanoIRC): The IRC connection instance
         """
         return self.datetime.date()
@@ -43,7 +43,7 @@ class Commands:
         Return the current formatted time
 
         Args:
-            command(src.commander.Command): The IRC command instance
+            command(src.Command): The IRC command instance
             irc(src.NanoIRC): The IRC connection instance
         """
         return self.datetime.time()

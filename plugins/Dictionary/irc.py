@@ -40,7 +40,7 @@ class Commands:
         Looks up the definition of a word using the Merriam Webster dictionary
 
         Args:
-            command(src.commander.Command): The IRC command instance
+            command(src.Command): The IRC command instance
             irc(src.NanoIRC): The IRC connection instance
         """
         # Do we have a definition limit option?

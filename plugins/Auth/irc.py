@@ -42,7 +42,7 @@ class Commands:
         Attempt to log the user in
 
         Args:
-            command(src.commander.Command): The IRC command instance
+            command(src.Command): The IRC command instance
             irc(src.NanoIRC): The IRC connection instance
         """
         if command.public:
@@ -76,7 +76,7 @@ class Commands:
         Attempt to log the user out
 
         Args:
-            command(src.commander.Command): The IRC command instance
+            command(src.Command): The IRC command instance
             irc(src.NanoIRC): The IRC connection instance
         """
         if command.public:
@@ -96,7 +96,7 @@ class Commands:
         Return the e-mail of the account the user is currently logged into (if they are logged in)
 
         Args:
-            command(src.commander.Command): The IRC command instance
+            command(src.Command): The IRC command instance
             irc(src.NanoIRC): The IRC connection instance
         """
         if command.public:
