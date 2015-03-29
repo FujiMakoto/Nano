@@ -26,23 +26,23 @@ class Commands:
 
     def __init__(self):
         """
-        Initialize a new auth Commands instance
+        Initialize a new URL Commands instance
         """
         self.url = URL()
         self.log = logging.getLogger('nano.plugins.url.irc.commands')
 
-    def command_title(self, args, opts, irc, source, public, **kwargs):
+    def command_title(self, command, irc):
         """
         Returns the title of a web page
         """
         # Format the URL title?
         formatted = True
-        if 'formatted' in opts:
-            if 'false' in opts['formatted'].lower():
+        if 'formatted' in command.opts:
+            if command.opts['formatted'].lower() == "false":
                 formatted = False
 
         # Retrieve and return the title
-        title = self.url.get_title_from_url(args[0], formatted)
+        title = self.url.get_title_from_url(command.args[0], formatted)
 
         if title:
             return title
@@ -70,7 +70,7 @@ class Events:
 
         Args:
             event(irc.client.Event): The IRC event instance
-            irc(NanoIRC): The IRC connection instance
+            irc(src.NanoIRC): The IRC connection instance
         """
         if not self.parse_messages:
             self.log.debug('[PUBMSG] Message parsing disabled, skipping')

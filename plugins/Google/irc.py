@@ -30,19 +30,27 @@ class Commands:
         self.google = Google()
         self.log = logging.getLogger('nano.plugins.google')
 
-    def command_search(self, args, opts, irc, source, public, **kwargs):
+    def command_search(self, command, irc):
         """
         Perform a search query and returns the top results
+
+        Args:
+            command(src.commander.Command): The IRC command instance
+            irc(src.NanoIRC): The IRC connection instance
         """
         # How many results are we retrieving?
         results = 4
-        if 'results' in opts:
-            results = abs(int(opts['results']))
+        if 'results' in command.opts:
+            results = abs(int(command.opts['results']))
 
-        return self.google.search(' '.join(args), results)
+        return self.google.search(' '.join(command.args), results)
 
-    def command_lucky(self, args, opts, irc, source, public, **kwargs):
+    def command_lucky(self, command, irc):
         """
         Perform a search query and return the first result
+
+        Args:
+            command(src.commander.Command): The IRC command instance
+            irc(src.NanoIRC): The IRC connection instance
         """
-        return self.google.lucky(' '.join(args))
+        return self.google.lucky(' '.join(command.args))

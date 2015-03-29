@@ -35,21 +35,26 @@ class Commands:
         self.max_limit = self.config.getint('Dictionary', 'MaxDefinitions')
         self.max_default = self.config.getint('Dictionary', 'DefaultMaxDefinitions')
 
-    def command_define(self, args, opts, irc, source, public, **kwargs):
+    def command_define(self, command, irc):
         """
         Looks up the definition of a word using the Merriam Webster dictionary
+
+        Args:
+            command(src.commander.Command): The IRC command instance
+            irc(src.NanoIRC): The IRC connection instance
         """
         # Do we have a definition limit option?
         max_definitions = self.max_default
-        if 'max' in opts:
-            max_definitions = min(abs(int(opts['max'])), self.max_limit)
+        if 'max' in command.opts:
+            max_definitions = min(abs(int(command.opts['max'])), self.max_limit)
 
         # Fetch our definitions
-        self.log.info('Fetching up to {max} definitions for the word {word}'.format(max=max_definitions, word=args[0]))
-        definitions = self.dictionary.define(args[0], max_definitions)
+        self.log.info('Fetching up to {max} definitions for the word {word}'
+                      .format(max=max_definitions, word=command.args[0]))
+        definitions = self.dictionary.define(command.args[0], max_definitions)
 
         if not definitions:
-            return "Sorry, I couldn't find a definition for <strong>{word}</strong>".format(word=args[0])
+            return "Sorry, I couldn't find a definition for <strong>{word}</strong>".format(word=command.args[0])
 
         # Format our definitions
         formatted_definitions = []

@@ -86,7 +86,7 @@ class Commander:
         try:
             command = self.irc.plugins.get(plugin).get_irc_command(command, command_prefix)
             if callable(command):
-                return command(args, opts, self.irc, source, public)
+                return command(Command(args, opts, source, public), self.irc)
         except PluginNotLoadedError:
             self.log.info('Attempted to execute a command from a plugin that is not loaded or does not exist')
             return
@@ -233,7 +233,7 @@ class Commander:
 
         Args:
             command_args(str): The command to execute
-            irc(NanoIRC): The active NanoIRC instance
+            irc(src.NanoIRC): The active NanoIRC instance
             source(str): Hostmask of the requesting client
             public(bool): This command was executed from a public channel
 
@@ -358,3 +358,29 @@ class Commander:
             filtered = bool(len(args))
 
             return command_string, filtered
+
+
+class Command:
+    """
+    An IRC command
+    """
+    def __init__(self, args, opts, source, public):
+        """
+        Initialize a Command
+
+        Args:
+            args(list): Any command arguments
+            opts(list): Any command arguments
+            source(irc.client.NickMask): The client calling the command
+            public(bool): Whether or not the command was called from a public channel
+        """
+        # Set the command arguments and options
+        self.args = args if args is not None else []
+        self.opts = opts if opts is not None else []
+
+        # Set the client source
+        self.source = source
+        self.public = public
+
+        # TODO Set our current application version
+        self.version = None

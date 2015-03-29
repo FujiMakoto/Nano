@@ -28,14 +28,22 @@ class Commands:
         self.datetime = Datetime()
         self.log = logging.getLogger('nano.plugins.datetime.irc.commands')
 
-    def command_date(self, args, opts, irc, source, public, **kwargs):
+    def command_date(self, command, irc):
         """
         Return the current formatted date
+
+        Args:
+            command(src.commander.Command): The IRC command instance
+            irc(src.NanoIRC): The IRC connection instance
         """
         return self.datetime.date()
 
-    def command_time(self, args, opts, irc, source, public, **kwargs):
+    def command_time(self, command, irc):
         """
         Return the current formatted time
+
+        Args:
+            command(src.commander.Command): The IRC command instance
+            irc(src.NanoIRC): The IRC connection instance
         """
         return self.datetime.time()
