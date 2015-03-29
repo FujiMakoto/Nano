@@ -215,7 +215,6 @@ class Commander:
                 self.log.debug('Subplugin matched: ' + subplugin)
                 plugin = subplugin
                 del args[0]
-                del args[1]
 
         if not plugin:
             self.log.debug('Requested plugin is not loaded or does not exist')
@@ -256,8 +255,8 @@ class Commander:
             return self._help_execute(plugin, command)
 
         # Are we authenticated?
-        if self.auth.check(source, self.irc.network):
-            user = self.auth.user(source, self.irc.network)
+        if self.auth.check(source.host, self.irc.network):
+            user = self.auth.user(source.host, self.irc.network)
 
             # If we're an administrator, attempt to execute an admin command
             if user.is_admin:
