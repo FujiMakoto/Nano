@@ -55,6 +55,7 @@ class IgnoreList:
             return True
 
         # No match.
+        self.log.info('No ignore list entry matched')
         return False
 
     def all(self):
@@ -79,8 +80,7 @@ class IgnoreList:
             if source in self._ignore_list['hosts']:
                 raise IgnoreEntryAlreadyExistsError('An ignore list entry for this host already exists')
 
-            # Append to our ignore list and ready our model
-            self._ignore_list['hosts'].append(source)
+            # Set up our database model
             ignore_list_entry = IgnoreListModel(source=source, mask=mask)
         elif mask == self.NICK:
             # Make sure this nick isn't already in our ignore list
@@ -88,15 +88,15 @@ class IgnoreList:
             if source in self._ignore_list['nicks']:
                 raise IgnoreEntryAlreadyExistsError('An ignore list entry for this nick already exists')
 
-            # Append to our ignore list and ready our model
-            self._ignore_list['nicks'].append(source)
+            # Set up our database model
             ignore_list_entry = IgnoreListModel(source=source, mask=mask)
         else:
             return
 
-        # Commit to database
+        # Commit to and synchronize with the database
         self.dbs.add(ignore_list_entry)
         self.dbs.commit()
+        self.synchronize()
 
     def delete(self, source, mask=HOST):
         """

@@ -131,7 +131,8 @@ class NanoIRC(IRC):
         """
         # Make sure this client isn't on our ignore list
         if self.ignore_list.exists(event.source):
-            return
+            self.log.info('Not responding to a message from ' + event.source)
+            return False
 
         # Are we trying to call a command directly?
         if self.commander.trigger_pattern.match(event.arguments[0]):
@@ -162,7 +163,7 @@ class NanoIRC(IRC):
             self.postmaster.deliver(replies, event.source, self.channel, public)
         else:
             self.log.debug('No response received')
-            if command_event:
+            if command_event and replies is not False:
                 self._fire_plugin_event(command_event, event)
 
     def _fire_plugin_event(self, event_name, event):
