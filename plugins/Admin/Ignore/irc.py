@@ -111,6 +111,10 @@ class Commands:
         if not len(command.args):
             return destination, "Please specify the nick you wish to have ignored"
 
+        # Admin sanity check
+        if str(command.source.nick).lower() == str(command.args[0]).lower():
+            return destination, "You can't add yourself to the ignore list! Why would you try and do that?"
+
         command.bind_whois_event(command.args[0], self._add)
 
     def admin_command_delete(self, command):
