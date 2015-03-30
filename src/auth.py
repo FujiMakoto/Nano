@@ -1,9 +1,7 @@
 import bcrypt
 from database import MemorySession
 from database.models import UserSession
-from .exceptions import *
-from ..User.exceptions import UserDoesNotExistsError
-from ..User import User, UserValidators
+from .user import User, UserValidators, UserDoesNotExistsError
 
 __author__     = "Makoto Fujikawa"
 __copyright__  = "Copyright 2015, Makoto Fujikawa"
@@ -235,3 +233,16 @@ class AuthSession:
 
         # Destroy all matched user session entries
         query.delete()
+
+
+# Exceptions
+class AlreadyAuthenticatedError(Exception):
+    pass
+
+
+class NotAuthenticatedError(Exception):
+    pass
+
+
+class InvalidPasswordError(Exception):
+    pass

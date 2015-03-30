@@ -1,8 +1,7 @@
 import logging
 from src.validator import ValidationError
-from ..User.exceptions import UserDoesNotExistsError
-from .plugin import Auth
-from .exceptions import *
+from src.auth import Auth, AlreadyAuthenticatedError, InvalidPasswordError, NotAuthenticatedError
+from src.user import UserDoesNotExistsError
 
 
 class Commands:

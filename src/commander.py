@@ -1,8 +1,8 @@
 import re
 import shlex
 import logging
-from src.plugins import PluginNotLoadedError
-from plugins import Auth
+from .plugins import PluginNotLoadedError
+from .auth import Auth
 
 __author__     = "Makoto Fujikawa"
 __copyright__  = "Copyright 2015, Makoto Fujikawa"
