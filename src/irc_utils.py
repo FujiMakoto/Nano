@@ -100,10 +100,12 @@ class MessageParser:
         self.irc_underline = re.compile(self.IRC_UNDERLINE, re.UNICODE)
 
         # Color formatting
+        self.html_color = re.compile("(?P<opening_tag><p(\s)?\sclass=[\"']([a-zA-Z-_\s]+\s)?(fg-|bg-)([A-Za-z]+)"
+                                     "(\s[a-zA-Z-_\s]+)?[\"'](\s)?>)(?P<message>[^<]+)(<\/p>)", re.UNICODE)
         self.html_fg_color = re.compile("(?P<opening_tag><p(\s.*)?\sclass=[\"'](.*\s)?fg-(?P<fg_color>[A-Za-z]+)(\s.*)?"
-                                        "[\"'](\s.*)?>)(?P<message>.+)(?P<closing_tag><\/p>)", re.UNICODE)
+                                        "[\"'](\s.*)?>)", re.UNICODE)
         self.html_bg_color = re.compile("(?P<opening_tag><p(\s.*)?\sclass=[\"'](.*\s)?bg-(?P<bg_color>[A-Za-z]+)(\s.*)?"
-                                        "[\"'](\s.*)?>)(?P<message>.+)(?P<closing_tag><\/p>)", re.UNICODE)
+                                        "[\"'](\s.*)?>)", re.UNICODE)
 
     def html_to_irc(self, message):
         """
@@ -120,39 +122,41 @@ class MessageParser:
         message = self.html_italics.sub(self.IRC_ITALICS, message)
         message = self.html_underline.sub(self.IRC_UNDERLINE, message)
 
-        # Match foreground / background colors
-        fg_match = self.html_fg_color.match(message)
-        bg_match = self.html_bg_color.match(message)
+        # Color code replacement method
+        def color_replace(match):
+            fg_match = self.html_fg_color.match(match.group('opening_tag'))
+            bg_match = self.html_bg_color.match(match.group('opening_tag'))
 
-        # Set foreground / background colors
-        fg_color = self.BLACK
-        bg_color = None
+            # Set foreground / background colors
+            fg_color = self.BLACK
+            bg_color = None
 
-        # Foreground
-        if fg_match:
-            fg_color_name = fg_match.group('fg_color').upper()
-            if fg_color_name in self._nameToColor:
-                fg_color = self._nameToColor[fg_color_name]
-        # Background
-        if bg_match:
-            bg_color_name = bg_match.group('bg_color').upper()
-            if bg_color_name in self._nameToColor:
-                bg_color = self._nameToColor[bg_color_name]
+            # Foreground
+            if fg_match:
+                fg_color_name = fg_match.group('fg_color').upper()
+                if fg_color_name in self._nameToColor:
+                    fg_color = self._nameToColor[fg_color_name]
+            # Background
+            if bg_match:
+                bg_color_name = bg_match.group('bg_color').upper()
+                if bg_color_name in self._nameToColor:
+                    bg_color = self._nameToColor[bg_color_name]
 
-        # Apply foreground / background colors
-        if fg_match or bg_match:
-            # Set the first available match to pull our message from later
-            color_match = fg_match if fg_match else bg_match
+            # Apply foreground / background colors
+            if fg_match or bg_match:
+                # Foreground and background or foreground only?
+                if bg_color:
+                    message_template = "{color_ctrl}{fg_code},{bg_code}{message}{color_ctrl}"
+                else:
+                    message_template = "{color_ctrl}{fg_code}{message}{color_ctrl}"
 
-            # Foreground and background or foreground only?
-            if bg_color:
-                message_template = "{color_ctrl}{fg_code},{bg_code}{message}{color_ctrl}"
-            else:
-                message_template = "{color_ctrl}{fg_code}{message}{color_ctrl}"
+                # Format the message template
+                formatted = message_template.format(color_ctrl=self.IRC_COLOR, fg_code=fg_color, bg_code=bg_color,
+                                                    message=match.group('message'))
+                return formatted
 
-            # Format the message template
-            message = message_template.format(color_ctrl=self.IRC_COLOR, fg_code=fg_color, bg_code=bg_color,
-                                              message=color_match.group('message'))
+        # Substitute foreground / background color matches
+        message = self.html_color.sub(color_replace, message)
 
         # Unescape HTML entities
         message = unescape(message)
