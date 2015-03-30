@@ -35,13 +35,12 @@ class Commands:
         self.max_limit = self.config.getint('Dictionary', 'MaxDefinitions')
         self.max_default = self.config.getint('Dictionary', 'DefaultMaxDefinitions')
 
-    def command_define(self, command, irc):
+    def command_define(self, command):
         """
         Looks up the definition of a word using the Merriam Webster dictionary
 
         Args:
             command(src.Command): The IRC command instance
-            irc(src.NanoIRC): The IRC connection instance
         """
         # Do we have a definition limit option?
         max_definitions = self.max_default

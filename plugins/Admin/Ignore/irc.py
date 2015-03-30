@@ -40,7 +40,6 @@ class Commands:
         """
         self.log = logging.getLogger('nano.plugins.admin.ignore.irc.commands')
         self.ignore_list = IgnoreList()
-        self.whois = []
 
     def _get_destination(self, public):
         """
@@ -51,52 +50,46 @@ class Commands:
         """
         return 'private_notice' if public else 'private_message'
 
-    # TODO This is not production ready code
-    def _add(self, command, irc):
-        def start_whois(callback_connection, callback_event):
-            irc.connection.remove_global_handler('whoisuser', start_whois)
-            self.log.debug('WHOIS response: ' + str(callback_event.args))
+    def _add(self, command, whois):
+        """
+        Admin add command event callback
 
-            self.whois = callback_event.arguments
+        Args:
+            command(src.commander.Command): The IRC command instance
+            event(list): The WHOIS event response data
+        """
+        destination = self._get_destination(command.public)
 
-        def end_whois(callback_connection, callback_event):
-            irc.connection.remove_global_handler('endofwhois', end_whois)
-            self.log.debug('End of WHOIS response')
-            # self.whois = []
+        # Make sure we received a whois response
+        if not whois:
+            return command.deliver_response((destination, "No user with the nick {nick} appears to be connected"
+                                             .format(command.args[0])))
 
-            # Add an ignore list entry
-            destination = self._get_destination(command.public)
-            if not self.whois:
-                irc.postmaster.deliver((destination, "No user with the nick {nick} appears to be connected."
-                                       .format(nick=command.args[0])), command.source, irc.channel, command.public)
-                return
+        # Attempt to add the user to the client ignore list
+        try:
+            whois = whois.pop(0)
+            self.log.info('Adding {nick} to the client ignore list'.format(nick=command.args[0]))
+            self.ignore_list.add(whois[2])
+            command.irc.ignore_list.synchronize()
+            return command.deliver_response((destination, "{host} ({nick}) successfully added to the ignore list"
+                                            .format(host=command.args[0], nick=whois[2])))
+        except IgnoreEntryAlreadyExistsError as e:
+            self.log.info(e)
+            return command.deliver_response((destination, "{host} ({nick}) is already on the ignore list"
+                                             .format(host=command.args[0], nick=whois[2])))
 
-            try:
-                self.log.info('Adding {nick} to the client ignore list'.format(nick=self.whois[0]))
-                self.ignore_list.add(self.whois[3])
-                return destination, "{host} ({nick}) successfully added to the ignore list"\
-                    .format(host=self.whois[0], nick=self.whois[3])
-            except IgnoreEntryAlreadyExistsError as e:
-                self.log.info(e)
-
-        irc.connection.add_global_handler('whoisuser', start_whois)
-        irc.connection.add_global_handler('endofwhois', end_whois)
-        self.log.debug('Executing WHOIS command')
-        irc.connection.whois(command.args[0])
-
-    def admin_command_list(self, command, irc):
+    def admin_command_list(self, command):
         """
         Lists all currently ignored clients
 
         Args:
             command(src.Command): The IRC command instance
-            irc(src.NanoIRC): The IRC connection instance
         """
         destination = self._get_destination(command.public)
         # Fetch our ignore list entries
         ignore_list = self.ignore_list.all()
         if not ignore_list:
-            return destination, "There are no entries in the ignore list."
+            return destination, "There are no entries in the ignore list"
 
         # Loop through the entries and format them into a string response
         response_list = []
@@ -107,54 +100,53 @@ class Commands:
 
         return destination, ' '.join(response_list)
 
-    def admin_command_add(self, command, irc):
+    def admin_command_add(self, command):
         """
         Adds a client to the ignore list
 
         Args:
             command(src.Command): The IRC command instance
-            irc(src.NanoIRC): The IRC connection instance
         """
         destination = self._get_destination(command.public)
         if not len(command.args):
-            return destination, "Please specify the nick you wish to have ignored."
+            return destination, "Please specify the nick you wish to have ignored"
 
-        self._add(command, irc)
+        command.bind_whois_event(command.args[0], self._add)
 
-    def admin_command_delete(self, command, irc):
+    def admin_command_delete(self, command):
         """
         Deletes a client from the ignore list
 
         Args:
             command(src.Command): The IRC command instance
-            irc(src.NanoIRC): The IRC connection instance
         """
         destination = self._get_destination(command.public)
         if not len(command.args):
-            return destination, "Please specify the ID of the ignore entry you wish to remove. (See the list command)"
+            return destination, "Please specify the ID of the ignore entry you wish to remove (See the list command)"
 
         # Make sure we have a valid database ID
         try:
             db_id = int(command.args[0])
         except ValueError:
-            return destination, "Please specify a valid ignore list ID entry. (See the list command)"
+            return destination, "Please specify a valid ignore list ID entry (See the list command)"
 
         # Remove the ignore list entry
         delete_status = self.ignore_list.delete_by_id(db_id)
 
         if delete_status is True:
-            return destination, "Ignore list entry successfully removed."
+            command.irc.ignore_list.synchronize()
+            return destination, "Ignore list entry successfully removed"
 
-        return destination, "No such ignore list entry exists."
+        return destination, "No such ignore list entry exists"
 
-    def admin_command_clear(self, command, irc):
+    def admin_command_clear(self, command):
         """
         Deletes all ignore list entries
 
         Args:
             command(src.Command): The IRC command instance
-            irc(src.NanoIRC): The IRC connection instance
         """
         destination = self._get_destination(command.public)
         self.ignore_list.clear()
-        return destination, "Ignore list cleared successfully."
+        command.irc.ignore_list.synchronize()
+        return destination, "Ignore list cleared successfully"

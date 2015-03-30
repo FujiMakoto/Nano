@@ -144,7 +144,7 @@ class AuthSession:
     """
     def __init__(self):
         """
-        Initialize a new Auth Sessions instance
+        Initialize a new Auth Session instance
         """
         self.dms = MemorySession()
 

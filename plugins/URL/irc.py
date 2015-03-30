@@ -31,9 +31,12 @@ class Commands:
         self.url = URL()
         self.log = logging.getLogger('nano.plugins.url.irc.commands')
 
-    def command_title(self, command, irc):
+    def command_title(self, command):
         """
         Returns the title of a web page
+
+        Args:
+            command(src.Command): The IRC command instance
         """
         # Format the URL title?
         formatted = True

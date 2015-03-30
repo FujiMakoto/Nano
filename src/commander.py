@@ -86,7 +86,7 @@ class Commander:
         try:
             command = self.irc.plugins.get(plugin).get_irc_command(command, command_prefix)
             if callable(command):
-                return command(Command(args, opts, source, public), self.irc)
+                return command(Command(self.irc, args, opts, source, public))
         except PluginNotLoadedError:
             self.log.info('Attempted to execute a command from a plugin that is not loaded or does not exist')
             return
@@ -363,7 +363,7 @@ class Command:
     """
     An IRC command
     """
-    def __init__(self, args, opts, source, public):
+    def __init__(self, irc, args, opts, source, public):
         """
         Initialize a Command
 
@@ -373,6 +373,12 @@ class Command:
             source(irc.client.NickMask): The client calling the command
             public(bool): Whether or not the command was called from a public channel
         """
+        self.log = logging.getLogger('nano.command')
+        self.log.info('Setting up a new Command instance')
+
+        # Set the NanoIRC instance
+        self.irc = irc
+
         # Set the command arguments and options
         self.args = args if args is not None else []
         self.opts = opts if opts is not None else []
@@ -383,3 +389,67 @@ class Command:
 
         # TODO Set our current application version
         self.version = None
+
+        # Event holders
+        self._whois = []
+
+    def deliver_response(self, response):
+        """
+        Deliver a response message (intended to be utilized primarily for events)
+
+        Args:
+            response(list, tuple or str): The response message(s) to deliver
+        """
+        self.irc.postmaster.deliver(response, self.source, self.irc.channel, self.public)
+
+    def bind_whois_event(self, targets, callback):
+        """
+        Fire an IRC WHOIS command and call the callback once a response is received
+
+        Args:
+            targets(str): The target(s) to WHOIS
+            callback: The method to fire on WHOIS response
+        """
+        # Event methods
+        def whois_start(connection, event):
+            """
+            Handles a single WHOIS response event
+
+            Args:
+                connection(irc.client.ServerConnection): The active IRC server connection
+                event(irc.client.Event): The event response data
+            """
+            # Unbind our event listener
+            self.irc.connection.remove_global_handler('whoisuser', whois_start)
+            self.log.debug('WHOIS response: ' + str(event.arguments))
+
+            # Append our whois data
+            if len(event.arguments):
+                self._whois.append(event.arguments)
+
+        def whois_end(connection, event):
+            """
+            Handles the end of a WHOIS event
+
+            Args:
+                connection(irc.client.ServerConnection): The active IRC server connection
+                event(irc.client.Event): The event response data
+            """
+            # Unbind our event listener
+            self.irc.connection.remove_global_handler('endofwhois', whois_end)
+            self.log.debug('End of WHOIS response')
+
+            # Fire our callback method and reset the event holder
+            if not callable(callback):
+                self.log.error('The callback supplied was not a valid callable method! Please review the documentation')
+
+            callback(self, self._whois)
+            self._whois = []
+
+        # Bind and execute the events
+        self.log.debug('Binding WHOIS events')
+        self.irc.connection.add_global_handler('whoisuser', whois_start)
+        self.irc.connection.add_global_handler('endofwhois', whois_end)
+
+        self.log.debug('Executing WHOIS command')
+        self.irc.connection.whois(targets)
