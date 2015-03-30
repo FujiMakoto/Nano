@@ -5,8 +5,9 @@ import logging
 from configparser import ConfigParser
 from .irc import IRC
 from .irc_utils import MessageParser, Postmaster
-from src.commander import Commander
+from .commander import Commander
 from .logger import IRCChannelLogger, IRCQueryLogger, IRCLoggerSource
+from .ignore import IgnoreList
 
 __author__     = "Makoto Fujikawa"
 __copyright__  = "Copyright 2015, Makoto Fujikawa"
@@ -56,6 +57,9 @@ class NanoIRC(IRC):
         self.commander = Commander(self)
         self.postmaster = Postmaster(self)
         self.message_parser = MessageParser()
+
+        # Load our client ignore list
+        self.ignore_list = IgnoreList()
 
         # Network feature list
         self.network_features = {}
@@ -125,6 +129,10 @@ class NanoIRC(IRC):
         Returns:
             list, tuple, str or None
         """
+        # Make sure this client isn't on our ignore list
+        if self.ignore_list.exists(event.source):
+            return
+
         # Are we trying to call a command directly?
         if self.commander.trigger_pattern.match(event.arguments[0]):
             self.log.info('Acknowledging {pub_or_priv} command request from {nick}'
