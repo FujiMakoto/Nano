@@ -94,7 +94,7 @@ class Commands:
         # Loop through the entries and format them into a string response
         response_list = []
         for entry in ignore_list:
-            # Append the formatted the response string to our response list
+            # Append the formatted response string to our response list
             db_id, source, mask = entry
             response_list.append('<strong>{id}:</strong> {source} ({mask})'.format(id=db_id, source=source, mask=mask))
 

@@ -1,6 +1,5 @@
 from database import DbSession
 from database.models import Network as NetworkModel
-from .exceptions import *
 
 __author__     = "Makoto Fujikawa"
 __copyright__  = "Copyright 2015, Makoto Fujikawa"
@@ -12,6 +11,18 @@ class Network:
     """
     Create, modify, delete and retrieve IRC Networks from the database
     """
+    NAME = "name"
+    HOST = "host"
+    PORT = "port"
+    NICK = "nick"
+    AUTOJOIN = "autojoin"
+    HAS_SERVICES = "has_services"
+    AUTH_METHOD = "auth_method"
+    USER_PASS = "user_password"
+    SERV_PASS = "server_password"
+
+    validAttributes = [NAME, HOST, PORT, NICK, AUTOJOIN, HAS_SERVICES, AUTH_METHOD, USER_PASS, SERV_PASS]
+
     def __init__(self):
         """
         Initialize a new Network instance
@@ -57,12 +68,13 @@ class Network:
 
         raise MissingArgumentsError("You must specify either a network name or host to check")
 
-    def get(self, name=None, host=None):
+    def get(self, db_id=None, name=None, host=None):
         """
         Retrieve a network by its name or host
 
         Args:
-            name(str, optional): The name/alias for the network
+            id(int, optional): The database ID of the network
+            name(str, optional): The name/alias of the network
             host(str, optional): The networks host
 
         Returns:
@@ -71,6 +83,9 @@ class Network:
         Raises:
             MissingArgumentsError: Neither the network name or host were passed as arguments
         """
+        if db_id:
+            return self.dbs.query(NetworkModel).filter(NetworkModel.id == db_id).first()
+
         if name:
             return self.dbs.query(NetworkModel).filter(NetworkModel.name == name).first()
 
@@ -106,3 +121,18 @@ class Network:
         self.dbs.commit()
 
         return new_network
+
+    def remove(self, network):
+        """
+        Delete an existing network
+
+        Args:
+            network(database.models.Network)
+        """
+        self.dbs.delete(network)
+        self.dbs.commit()
+
+
+# Exceptions
+class MissingArgumentsError(Exception):
+    pass

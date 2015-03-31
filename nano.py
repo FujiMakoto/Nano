@@ -7,7 +7,9 @@ from configparser import ConfigParser
 from src.plugins import PluginManager
 from src.language import Language
 from src.nano_irc import NanoIRC
-from plugins import Network, Channel
+from src.network import Network
+from plugins import Channel
+
 # from database import DbSession
 # from database.models import Network, Channel
 
