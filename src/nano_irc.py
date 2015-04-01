@@ -1,10 +1,11 @@
 """
-net_irc.py: Establish a new IRC connection
+nano_irc.py: Establish a new IRC connection
 """
 import logging
 from configparser import ConfigParser
 from .irc import IRC
-from .irc_utils import MessageParser, Postmaster
+from .postmaster import Postmaster
+from .utilities import MessageParser
 from .commander import Commander
 from .logger import IRCChannelLogger, IRCQueryLogger, IRCLoggerSource
 from .ignore import IgnoreList
@@ -20,7 +21,6 @@ class NanoIRC(IRC):
     """
     Establishes a new connection to the configured IRC server
     """
-
     def __init__(self, network, channel, plugins=None, language=None):
         """
         Initialize a new Nano IRC instance
