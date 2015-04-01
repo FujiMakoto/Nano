@@ -8,6 +8,7 @@ from src.plugins import PluginManager
 from src.language import Language
 from src.nano_irc import NanoIRC
 from src.network import Network
+from src.cli.nano_cli import NanoCLI
 from plugins import Channel
 
 # from database import DbSession
@@ -83,10 +84,13 @@ class Nano:
                 nano_irc = NanoIRC(network, channel, self.plugins, self.language)
                 nano_irc.start()
 
+    def cli(self):
+        NanoCLI(self)
+
 
 def main():
     nano = Nano()
-    nano.irc()
+    nano.cli()
 
 
 if __name__ == "__main__":

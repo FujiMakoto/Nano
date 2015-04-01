@@ -183,6 +183,7 @@ class Plugin:
         self.config = config
         self.commands_class = None
         self.events_class = None
+        self.cli_commands_class = None
 
         # Import the plugin
         self.log.debug('Importing plugin: ' + name)
@@ -200,17 +201,48 @@ class Plugin:
             name(str): Name of the module to import
         """
         self.log.debug('Loading plugin: ' + self.name)
-        # See if we have a Commands class, and import it into our commands list if so
+        # See if we have a Commands class, and import it into our commands attribute if so
         if hasattr(self.module_import, 'Commands'):
             self.log.debug('Loading {module} Commands'.format(module=self.name))
             command_class = getattr(self.module_import, 'Commands')
             self.commands_class = command_class()
 
-        # See if we have an Events class, and import it into our events list if so
+        # See if we have an Events class, and import it into our events attribute if so
         if hasattr(self.module_import, 'Events'):
             self.log.debug('Loading {module} Events'.format(module=self.name))
             event_class = getattr(self.module_import, 'Events')
             self.events_class = event_class()
+
+        # See if we have a CLI Commands class, and import it into our cli commands attribute if so
+        if hasattr(self.module_import, 'CLICommands'):
+            self.log.debug('Loading {module} CLI Commands'.format(module=self.name))
+            command_class = getattr(self.module_import, 'Commands')
+            self.commands_class = command_class()
+
+    def get_irc_command(self, command_name, command_prefix='command_'):
+        """
+        Retrieve a callable IRC command method if it exists
+
+        Args:
+            command_name(str): The name of the command to retrieve
+            command_prefix(str, optional): The prefix of the command method. Defaults to 'command_'
+
+        Returns:
+            method or None
+        """
+        self.log.debug('Requesting {prefix}{command_name} command method for {module_name}'
+                       .format(prefix=command_prefix, command_name=command_name, module_name=self.name))
+
+        # Return our command method if it exists
+        if hasattr(self.commands_class, command_prefix + command_name):
+            self.log.debug('Returning {prefix}{command_name} command method for {module_name}'
+                           .format(prefix=command_prefix, command_name=command_name, module_name=self.name))
+            return getattr(self.commands_class, command_prefix + command_name)
+
+        # Otherwise return None
+        self.log.debug('{prefix}{command_name} is not a registered command for {module_name}'
+                       .format(prefix=command_prefix, command_name=command_name, module_name=self.name))
+        return
 
     def get_irc_event(self, event_name):
         """
@@ -236,7 +268,7 @@ class Plugin:
                        .format(event_name=event_name, module_name=self.name))
         return
 
-    def get_irc_command(self, command_name, command_prefix='command_'):
+    def get_cli_command(self, command_name, command_prefix='command_'):
         """
         Retrieve a callable IRC command method if it exists
 
@@ -246,17 +278,17 @@ class Plugin:
         Returns:
             method or None
         """
-        self.log.debug('Requesting {prefix}{command_name} command method for {module_name}'
+        self.log.debug('Requesting {prefix}{command_name} CLI command method for {module_name}'
                        .format(prefix=command_prefix, command_name=command_name, module_name=self.name))
 
         # Return our command method if it exists
-        if hasattr(self.commands_class, command_prefix + command_name):
-            self.log.debug('Returning {prefix}{command_name} command method for {module_name}'
+        if hasattr(self.cli_commands_class, command_prefix + command_name):
+            self.log.debug('Returning {prefix}{command_name} CLI command method for {module_name}'
                            .format(prefix=command_prefix, command_name=command_name, module_name=self.name))
-            return getattr(self.commands_class, command_prefix + command_name)
+            return getattr(self.cli_commands_class, command_prefix + command_name)
 
         # Otherwise return None
-        self.log.debug('{prefix}{command_name} is not a registered command for {module_name}'
+        self.log.debug('{prefix}{command_name} is not a registered CLI command for {module_name}'
                        .format(prefix=command_prefix, command_name=command_name, module_name=self.name))
         return
 
@@ -279,6 +311,16 @@ class Plugin:
         """
         self.log.debug('Checking if {module_name} has Events'.format(module_name=self.name))
         return self.events_class is not None
+
+    def has_cli_commands(self):
+        """
+        Returns True if the module has an instantiated CLI Commands class
+
+        Returns:
+            bool
+        """
+        self.log.debug('Checking if {module_name} has CLI Commands'.format(module_name=self.name))
+        return self.cli_commands_class is not None
 
     def __str__(self):
         """
