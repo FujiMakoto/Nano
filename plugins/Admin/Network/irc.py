@@ -1,5 +1,6 @@
 import logging
 from src.network import Network
+from src.validator import ValidationError
 
 
 # noinspection PyMethodMayBeStatic
@@ -224,6 +225,12 @@ class Commands:
         if not network:
             return destination, "No network with the specified ID exists"
 
+        # Validate the attribute
+        try:
+            self.network_list.validate.editing(**{attribute: value})
+        except ValidationError as e:
+            return destination, e.error_message
+
         # Update the attribute
         name = network.name  # Just in case we update the name attribute
         setattr(network, attribute, value)
@@ -254,7 +261,11 @@ class Commands:
             return destination, "Please specify a valid port number. Syntax: <strong><name> <host> <port></strong>"
 
         # Create the network entry
-        self.network_list.create(name, host, port)
+        try:
+            self.network_list.create(name, host, port)
+        except ValidationError as e:
+            return destination, e.error_message
+
         return destination, "Network <strong>{name}</strong> successfully created (<strong>{host}:{port}</strong>)"\
             .format(name=name, host=host, port=port)
 

@@ -1,5 +1,7 @@
+from voluptuous import Schema, Required, Optional, All, Length, Range, Match, MultipleInvalid
 from database import DbSession
 from database.models import Network as NetworkModel
+from .validator import Validator, ValidationError
 
 __author__     = "Makoto Fujikawa"
 __copyright__  = "Copyright 2015, Makoto Fujikawa"
@@ -28,6 +30,7 @@ class Network:
         Initialize a new Network instance
         """
         self.dbs = DbSession()
+        self.validate = NetworkValidators()
 
     def all(self, autojoin_only=True):
         """
@@ -112,9 +115,16 @@ class Network:
         Returns:
             database.models.Network
         """
+        # Set arguments
+        args = dict(name=name, host=host, port=port, server_password=server_password, nick=nick,
+                    user_password=user_password, has_services=has_services, autojoin=autojoin)
+        args = dict((key, value) for key, value in args.items() if value)
+
+        # Validate input
+        self.validate.creation(**args)
+
         # Set up a new Network Model
-        new_network = NetworkModel(name=name, host=host, port=port, server_password=server_password, nick=nick,
-                                   user_password=user_password, has_services=has_services, autojoin=autojoin)
+        new_network = NetworkModel(**args)
 
         # Insert the new network into our database
         self.dbs.add(new_network)
@@ -131,6 +141,73 @@ class Network:
         """
         self.dbs.delete(network)
         self.dbs.commit()
+
+
+class NetworkValidators(Validator):
+    def __init__(self):
+        # Run our parent Validator constructor
+        super().__init__()
+
+        # Set our validation rules
+        self.rules = {
+            'name': All(str, Length(max=255), Match(r'^\S+$')),
+            'host': All(str, Length(max=255), Match(r'^(?=.{1,255}$)[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?'
+                                                    r'(?:\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|-){0,61}[0-9A-Za-z])?)*\.?$')),
+            'port': All(int, Range(1, 65535)),
+            'server_password': All(str, Length(max=255)),
+            'nick': All(str, Length(max=50), Match(r'^[a-zA-Z\^_`{|}][0-9a-zA-Z\^_`{|}]*$')),
+            'has_services': All(bool),
+            'user_password': All(str, Length(max=255)),
+            'auth_method': All(str, Length(max=25)),
+            'autojoin': All(bool)
+        }
+
+        # Set our validation messages
+        self.messages = {
+            'name': "The network name you provided is invalid. The network name should not contain any spaces and can "
+                    "be up to 255 characters in length.",
+            'host': "The hostname you provided is not valid. Please check your input and try again.",
+            'port': "The port number you provided is not valid. The port number must be an integer between 1 and 65535",
+            'server_password': "The server password you provided is not valid. The server password may contain a "
+                               "maximum of 255 characters",
+            'nick': "The IRC nick you provided is invalid. Nicks may be up to 50 characters in length, can not start "
+                    "with a number and may only contain the following characters: 0-9 a-z A-Z ^ _ ` { | }",
+            'has_services': "Has services must contain a valid boolean value (True or False)",
+            'user_password': "The user password you provided is invalid. The user password may be up to 255 characters "
+                             "in length.",
+            'auth_method': "The auth method you provided was invalid.",
+            'autojoin': "Autojoin must contain a valid boolean value (True or False)"
+        }
+
+    def creation(self, **kwargs):
+        schema = Schema({
+            Required('name'): self.rules['name'],
+            Required('host'): self.rules['host'],
+            Required('port'): self.rules['port'],
+            Optional('server_password'): self.rules['server_password'],
+            Optional('nick'): self.rules['nick'],
+            Optional('has_services'): self.rules['has_services'],
+            Optional('user_password'): self.rules['user_password'],
+            Optional('auth_method'): self.rules['auth_method'],
+            Optional('autojoin'): self.rules['autojoin']
+        })
+
+        self.validate(schema, **kwargs)
+
+    def editing(self, **kwargs):
+        schema = Schema({
+            Optional('name'): self.rules['name'],
+            Optional('host'): self.rules['host'],
+            Optional('port'): self.rules['port'],
+            Optional('server_password'): self.rules['server_password'],
+            Optional('nick'): self.rules['nick'],
+            Optional('has_services'): self.rules['has_services'],
+            Optional('user_password'): self.rules['user_password'],
+            Optional('auth_method'): self.rules['auth_method'],
+            Optional('autojoin'): self.rules['autojoin']
+        })
+
+        self.validate(schema, **kwargs)
 
 
 # Exceptions
