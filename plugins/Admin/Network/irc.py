@@ -5,7 +5,6 @@ from src.validator import ValidationError
 from plugins.exceptions import NotEnoughArgumentsError, InvalidSyntaxError
 
 
-
 # noinspection PyMethodMayBeStatic
 class Commands:
     """
@@ -242,12 +241,6 @@ class Commands:
         if not network:
             return destination, "No network with the specified ID exists"
 
-        # Validate the attribute
-        try:
-            self.network_list.validate.editing(**{attribute: value})
-        except ValidationError as e:
-            return destination, e.error_message
-
         # Update the attribute
         name = network.name  # Just in case we update the name attribute
         setattr(network, attribute, value)
@@ -283,10 +276,7 @@ class Commands:
                                      destination=destination)
 
         # Create the network entry
-        try:
-            self.network_list.create(name, host, port)
-        except ValidationError as e:
-            return destination, e.error_message
+        self.network_list.create(name, host, port)
 
         return destination, "Network <strong>{name}</strong> successfully created (<strong>{host}:{port}</strong>)"\
             .format(name=name, host=host, port=port)

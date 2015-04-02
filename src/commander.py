@@ -4,6 +4,7 @@ import inspect
 import logging
 from abc import ABCMeta, abstractmethod
 from src.plugins import PluginNotLoadedError
+from src.validator import ValidationError
 from plugins.exceptions import CommandError
 from src.auth import Auth
 
@@ -99,12 +100,19 @@ class Commander:
             if callable(command):
                 syntax = self._get_command_syntax(command)
                 return command(self.command(self.connection, args, opts, source=source, public=public, syntax=syntax))
+        # Plugin not found
         except PluginNotLoadedError:
             self.log.info('Attempted to execute a command from a plugin that is not loaded or does not exist')
             return
+        # Command exceptions
         except CommandError as e:
             self.log.info('Command raised an exception: ' + e.error_message)
             return e.destination, e.error_message
+        # Validation exceptions
+        except ValidationError as e:
+            self.log.info('Validation exception raised: ' + e.error_message)
+            return e.error_message
+        # Uncaught exceptions (actual errors)
         except Exception as e:
             self.log.error('Uncaught exception raised when executing a plugin command (Args: {args}, Opts: {opts})'
                            .format(args=args, opts=opts), exc_info=e)
