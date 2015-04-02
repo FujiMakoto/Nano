@@ -1,6 +1,7 @@
 import logging
 from src.network import Network
 from src.validator import ValidationError
+from plugins.exceptions import NotEnoughArgumentsError, InvalidSyntaxError
 
 
 # noinspection PyMethodMayBeStatic
@@ -66,26 +67,33 @@ class Commands:
         """
         return 'private_notice' if public else 'private_message'
 
-    def _get_network_by_id(self, db_id):
+    def _get_network_by_id(self, db_id, command, destination):
         """
         Retrieve a network by its database ID
 
         Args:
             db_id(int): The database ID
+            command(src.Command): The IRC command instance
+            destination(str): The message destination
 
         Returns:
             database.models.Network
 
         Raises:
-            ValueError: Raised if the supplied ID is not a valid integer
+            InvalidSyntaxError: Raised if the supplied ID is not a valid integer
         """
         # Retrieve the network
-        db_id = int(db_id)
+        try:
+            db_id = int(db_id)
+        except ValueError:
+            raise InvalidSyntaxError(command, message='Please specify a valid network ID', destination=destination)
+
         return self.network_list.get(db_id)
 
     def admin_command_list(self, command):
         """
         Lists all saved networks
+        Syntax: list
 
         Args:
             command(src.Command): The IRC command instance
@@ -113,19 +121,22 @@ class Commands:
     def admin_command_show(self, command):
         """
         Display detailed information about the specified network
+        Syntax: show <id>
 
         Args:
             command(src.Command): The IRC command instance
+
+        Raises:
+            NotEnoughArgumentsError: Command requires 1 argument
+            InvalidSyntaxError: Argument 1 must be a valid integer
         """
         destination = self._get_destination(command.public)
         if not len(command.args):
-            return destination, "Please specify a valid network ID (See the list command)"
+            raise NotEnoughArgumentsError(command, error_message='Please specify a valid network ID',
+                                          destination=destination)
 
         # Make sure we have a valid database ID
-        try:
-            network = self._get_network_by_id(command.args[0])
-        except ValueError:
-            return destination, "Please specify a valid ignore list ID entry (See the list command)"
+        network = self._get_network_by_id(command.args[0], command, destination)
 
         if not network:
             return destination, "No network with the specified ID exists"
@@ -152,19 +163,22 @@ class Commands:
     def admin_command_enable(self, command):
         """
         Enables a networks autojoin flag
+        Syntax: enable <id>
 
         Args:
             command(src.Command): The IRC command instance
+
+        Raises:
+            NotEnoughArgumentsError: Command requires 1 argument
+            InvalidSyntaxError: Argument 1 must be a valid integer
         """
         destination = self._get_destination(command.public)
         if not len(command.args):
-            return destination, "Please specify a valid network ID (See the list command)"
+            raise NotEnoughArgumentsError(command, error_message='Please specify a valid network ID',
+                                          destination=destination)
 
         # Make sure we have a valid database ID
-        try:
-            network = self._get_network_by_id(command.args[0])
-        except ValueError:
-            return destination, "Please specify a valid ignore list ID entry (See the list command)"
+        network = self._get_network_by_id(command.args[0], command, destination)
 
         # Enable autojoin
         network.autojoin = True
@@ -175,19 +189,22 @@ class Commands:
     def admin_command_disable(self, command):
         """
         Disables a networks autojoin flag
+        Syntax: disable <id>
 
         Args:
             command(src.Command): The IRC command instance
+
+        Raises:
+            NotEnoughArgumentsError: Command requires 1 argument
+            InvalidSyntaxError: Argument 1 (db_id) must be a valid integer
         """
         destination = self._get_destination(command.public)
         if not len(command.args):
-            return destination, "Please specify a valid network ID (See the list command)"
+            raise NotEnoughArgumentsError(command, error_message='Please specify a valid network ID',
+                                          destination=destination)
 
         # Make sure we have a valid database ID
-        try:
-            network = self._get_network_by_id(command.args[0])
-        except ValueError:
-            return destination, "Please specify a valid ignore list ID entry (See the list command)"
+        network = self._get_network_by_id(command.args[0], command, destination)
 
         # Enable autojoin
         network.autojoin = False
@@ -198,22 +215,20 @@ class Commands:
     def admin_command_edit(self, command):
         """
         Modify a network attribute
+        Syntax: edit <id> <attribute> <value>
 
         Args:
             command(src.Command): The IRC command instance
+
+        Raises:
+            NotEnoughArgumentsError: Command requires 3 arguments
+            InvalidSyntaxError: Argument 1 (db_id) must be a valid integer
         """
         destination = self._get_destination(command.public)
-        if not len(command.args):
-            return destination, "Please specify a valid network ID (See the list command)"
-
-        if len(command.args) < 3:
-            return destination, "Syntax: <strong><id> <setting> <value></strong>"
+        if len(command.args) < 3: raise NotEnoughArgumentsError(command, 3)
 
         # Make sure we have a valid database ID
-        try:
-            network = self._get_network_by_id(command.args[0])
-        except ValueError:
-            return destination, "Please specify a valid ignore list ID entry (See the list command)"
+        network = self._get_network_by_id(command.args[0], command, destination)
 
         # Make sure we have a valid attribute
         attribute = str(command.args[1]).lower()
@@ -244,13 +259,17 @@ class Commands:
     def admin_command_create(self, command):
         """
         Create a new network
+        Syntax: create <name> <host> <port>
 
         Args:
             command(src.Command): The IRC command instance
+
+        Raises:
+            NotEnoughArgumentsError: Command requires 3 arguments
+            InvalidSyntaxError: Argument 3 (port) must be a valid integer
         """
         destination = self._get_destination(command.public)
-        if len(command.args) < 3:
-            return destination, "Syntax: <strong><name> <host> <port></strong>"
+        if len(command.args) < 3: raise NotEnoughArgumentsError(command, 3)
 
         # Set the attributes
         name = str(command.args[0])
@@ -258,7 +277,8 @@ class Commands:
         try:
             port = int(command.args[2])
         except ValueError:
-            return destination, "Please specify a valid port number. Syntax: <strong><name> <host> <port></strong>"
+            raise InvalidSyntaxError(command, 'Please specify a valid port number. Syntax: <strong>{syntax}</strong>',
+                                     destination=destination)
 
         # Create the network entry
         try:
@@ -272,19 +292,22 @@ class Commands:
     def admin_command_remove(self, command):
         """
         Delete an existing network
+        Syntax: delete <id>
 
         Args:
             command(src.Command): The IRC command instance
+
+        Raises:
+            NotEnoughArgumentsError: Command requires 1 argument
+            InvalidSyntaxError: Argument 1 (db_id) must be a valid integer
         """
         destination = self._get_destination(command.public)
         if not len(command.args):
-            return destination, "Please specify a valid network ID (See the list command)"
+            raise NotEnoughArgumentsError(command, error_message='Please specify a valid network ID',
+                                          destination=destination)
 
         # Make sure we have a valid database ID
-        try:
-            network = self._get_network_by_id(command.args[0])
-        except ValueError:
-            return destination, "Please specify a valid ignore list ID entry (See the list command)"
+        network = self._get_network_by_id(command.args[0], command, destination)
 
         if not network:
             return destination, "No network with the specified ID exists"
