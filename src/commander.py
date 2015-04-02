@@ -1,8 +1,11 @@
 import re
 import shlex
+import inspect
 import logging
-from .plugins import PluginNotLoadedError
-from .auth import Auth
+from abc import ABCMeta, abstractmethod
+from src.plugins import PluginNotLoadedError
+from plugins.exceptions import CommandError
+from src.auth import Auth
 
 __author__     = "Makoto Fujikawa"
 __copyright__  = "Copyright 2015, Makoto Fujikawa"
@@ -12,8 +15,10 @@ __maintainer__ = "Makoto Fujikawa"
 
 class Commander:
     """
-    IRC Command and Event dispatcher
+    Command dispatcher abstract class
     """
+    __metaclass__ = ABCMeta
+
     EVENT_JOIN = "on_join"
     EVENT_PART = "on_part"
     EVENT_QUIT = "on_quit"
@@ -50,21 +55,27 @@ class Commander:
         'EVENT_PRIVNOTICE': EVENT_PRIVNOTICE,
     }
 
-    def __init__(self, irc):
+    def __init__(self, connection):
         """
         Initialize a new Commander instance
         """
         # Initialize commander
-        self.irc = irc
-        self.log = logging.getLogger('nano.irc.commander')
+        self.connection = connection
+        self.log = logging.getLogger('nano.commander')
         self.auth = Auth()
 
         # Command trigger pattern
-        self.trigger_pattern = re.compile("^>>>( )?[a-zA-Z]+")
+        self.trigger_pattern = re.compile('^>>>( )?[a-zA-Z]+')
+
+        # Docstring syntax pattern
+        self.docstring_syntax = re.compile('^Syntax: (.+)$')
 
         # Option patterns
-        self.short_opt_pattern = re.compile("^\-([a-zA-Z])$")
+        self.short_opt_pattern = re.compile('^\-([a-zA-Z])$')
         self.long_opt_pattern  = re.compile('^\-\-([a-zA-Z]*)="?(.+)"?$')
+
+        # Command instance
+        self.command = Command
 
     def _execute(self, command, plugin, args, opts, source, public, command_prefix='command_'):
         """
@@ -84,12 +95,16 @@ class Commander:
         """
         # Get our commands class name for the requested plugin
         try:
-            command = self.irc.plugins.get(plugin).get_irc_command(command, command_prefix)
+            command = self.connection.plugins.get(plugin).get_irc_command(command, command_prefix)
             if callable(command):
-                return command(Command(self.irc, args, opts, source, public))
+                syntax = self._get_command_syntax(command)
+                return command(self.command(self.connection, args, opts, source=source, public=public, syntax=syntax))
         except PluginNotLoadedError:
             self.log.info('Attempted to execute a command from a plugin that is not loaded or does not exist')
             return
+        except CommandError as e:
+            self.log.info('Command raised an exception: ' + e.error_message)
+            return e.destination, e.error_message
 
     def _help_execute(self, plugin, command=None):
         """
@@ -105,9 +120,9 @@ class Commander:
         # Get our commands class name for the requested plugin
         commands_help = None
 
-        if self.irc.plugins.is_loaded(plugin):
+        if self.connection.plugins.is_loaded(plugin):
             # Load the commands class and check if a help dictionary exists in it
-            commands_class = self.irc.plugins.get(plugin).commands_class
+            commands_class = self.connection.plugins.get(plugin).commands_class
             if hasattr(commands_class, 'commands_help'):
                 commands_help = commands_class.commands_help
 
@@ -125,6 +140,36 @@ class Commander:
         # Return a default message if we didn't get anything
         return "Either no help entry is available for <strong>{command}</strong> or the command does not exist"\
             .format(command=command)
+
+    def _get_command_syntax(self, command):
+        """
+        Attempts to retrieve the command syntax from the commands docstring
+
+        Args:
+            command(method): The command method to inspect
+
+        Returns:
+            str or None
+        """
+        syntax = None
+
+        if not callable(command):
+            return None
+
+        self.log.debug('Fetching command docstring')
+        try:
+            docstrings = inspect.getdoc(command).split('\n')
+        except AttributeError:
+            return None
+
+        self.log.debug('Inspecting docstring for command syntax')
+        for docstring in docstrings:
+            syntax_match = self.docstring_syntax.match(docstring)
+            if syntax_match:
+                syntax = syntax_match.group(1)
+                self.log.debug('Syntax matched: ' + syntax)
+
+        return syntax
 
     def _parse_command_string(self, command_string):
         """
@@ -205,13 +250,13 @@ class Commander:
             help_command = True
 
         # Do we have a valid plugin or subplugin for this request?
-        if args_len and self.irc.plugins.is_loaded(args_lower[0]):
+        if args_len and self.connection.plugins.is_loaded(args_lower[0]):
             self.log.debug('Plugin matched: ' + args_lower[0])
             plugin = args_lower[0]
             del args[0]
         if args_len >= 2:
             subplugin = '.'.join([args_lower[0], args_lower[1]])
-            if self.irc.plugins.is_loaded(subplugin):
+            if self.connection.plugins.is_loaded(subplugin):
                 self.log.debug('Subplugin matched: ' + subplugin)
                 plugin = subplugin
                 del args[0]
@@ -226,82 +271,9 @@ class Commander:
 
         return plugin, command, args, help_command
 
-    def execute(self, command_string, source, public):
-        """
-        Attempt to execute the specified command
-
-        Args:
-            command_args(str): The command to execute
-            irc(src.NanoIRC): The active NanoIRC instance
-            source(str): Hostmask of the requesting client
-            public(bool): This command was executed from a public channel
-
-        Returns:
-            list, tuple, str or None: Returns replies to send to the client, or None if nothing should be returned
-        """
-        # Command prefixes
-        admin_prefix = "admin_command_"
-        user_prefix  = "user_command_"
-
-        # Parse our command string into names, arguments and options
-        try:
-            args, opts = self._parse_command_string(command_string)
-            plugin, command, args, help_command = self._parse_command_arguments(args)
-        except PluginNotLoadedError:
-            return None
-
-        # Are we executing a help command?
-        if help_command:
-            return self._help_execute(plugin, command)
-
-        # Are we authenticated?
-        if self.auth.check(source.host, self.irc.network):
-            user = self.auth.user(source.host, self.irc.network)
-
-            # If we're an administrator, attempt to execute an admin command
-            if user.is_admin:
-                response = self._execute(command, plugin, args, opts, source, public, admin_prefix)
-                if response:
-                    return response
-
-            # Attempt to execute an unprivileged user command
-            response = self._execute(command, plugin, args, opts, source, public, user_prefix)
-            if response:
-                return response
-
-        # Attempt to execute a public command
-        return self._execute(command, plugin, args, opts, source, public)
-
-    def event(self, event_name, event):
-        """
-        Fire IRC events for loaded plugins
-
-        Args:
-            event_name(str): The name of the event being fired
-            event(irc.client.Event): The IRC event instance
-
-        Returns:
-            list
-        """
-        # Make sure we're not executing a command
-        if self.trigger_pattern.match(event.arguments[0]):
-            self.log.debug('Not firing events for command requests')
-            return
-
-        self.log.debug('Firing ' + self._methodToName[event_name])
-
-        # Loop through and execute our events
-        replies = []
-        for plugin_name, plugin in self.irc.plugins.all().items():
-            if plugin.has_irc_events():
-                event_method = plugin.get_irc_event(event_name)
-                if callable(event_method):
-                    event_replies = event_method(event, self.irc)
-                    if event_replies:
-                        replies.append(event_replies)
-
-        self.log.debug('Returning event replies: ' + str(replies))
-        return replies
+    @abstractmethod
+    def execute(self, command_string, **kwargs):
+        pass
 
     def filter_command_string(self, command_string):
         """
@@ -363,93 +335,27 @@ class Command:
     """
     An IRC command
     """
-    def __init__(self, irc, args, opts, source, public):
+    def __init__(self, connection, args, opts, **kwargs):
         """
         Initialize a Command
 
         Args:
             args(list): Any command arguments
-            opts(list): Any command arguments
+            opts(list): Any command options
             source(irc.client.NickMask): The client calling the command
             public(bool): Whether or not the command was called from a public channel
         """
         self.log = logging.getLogger('nano.command')
-        self.log.info('Setting up a new Command instance')
 
-        # Set the NanoIRC instance
-        self.irc = irc
+        # Set the connection instance
+        self.connection = connection
 
         # Set the command arguments and options
         self.args = args if args is not None else []
         self.opts = opts if opts is not None else []
 
-        # Set the client source
-        self.source = source
-        self.public = public
+        # Set the command syntax
+        self.syntax = kwargs['syntax'] if 'syntax' in kwargs else None
 
         # TODO Set our current application version
         self.version = None
-
-        # Event holders
-        self._whois = []
-
-    def deliver_response(self, response):
-        """
-        Deliver a response message (intended to be utilized primarily for events)
-
-        Args:
-            response(list, tuple or str): The response message(s) to deliver
-        """
-        self.irc.postmaster.deliver(response, self.source, self.irc.channel, self.public)
-
-    def bind_whois_event(self, targets, callback):
-        """
-        Fire an IRC WHOIS command and call the callback once a response is received
-
-        Args:
-            targets(str): The target(s) to WHOIS
-            callback: The method to fire on WHOIS response
-        """
-        # Event methods
-        def whois_start(connection, event):
-            """
-            Handles a single WHOIS response event
-
-            Args:
-                connection(irc.client.ServerConnection): The active IRC server connection
-                event(irc.client.Event): The event response data
-            """
-            # Unbind our event listener
-            self.irc.connection.remove_global_handler('whoisuser', whois_start)
-            self.log.debug('WHOIS response: ' + str(event.arguments))
-
-            # Append our whois data
-            if len(event.arguments):
-                self._whois.append(event.arguments)
-
-        def whois_end(connection, event):
-            """
-            Handles the end of a WHOIS event
-
-            Args:
-                connection(irc.client.ServerConnection): The active IRC server connection
-                event(irc.client.Event): The event response data
-            """
-            # Unbind our event listener
-            self.irc.connection.remove_global_handler('endofwhois', whois_end)
-            self.log.debug('End of WHOIS response')
-
-            # Fire our callback method and reset the event holder
-            if not callable(callback):
-                self.log.error('The callback supplied was not a valid callable method! Please review the documentation')
-
-            callback(self, self._whois)
-            self._whois = []
-
-        # Bind and execute the events
-        self.log.debug('Binding WHOIS events')
-        self.irc.connection.add_global_handler('whoisuser', whois_start)
-        self.irc.connection.add_global_handler('endofwhois', whois_end)
-
-        self.log.debug('Executing WHOIS command')
-        self.irc.connection.whois(targets)
