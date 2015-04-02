@@ -234,7 +234,7 @@ class Plugin:
                        .format(prefix=command_prefix, command_name=command_name, module_name=self.name))
 
         # Return our command method if it exists
-        if hasattr(self.commands_class, command_prefix + command_name):
+        if command_name and hasattr(self.commands_class, command_prefix + command_name):
             self.log.debug('Returning {prefix}{command_name} command method for {module_name}'
                            .format(prefix=command_prefix, command_name=command_name, module_name=self.name))
             return getattr(self.commands_class, command_prefix + command_name)
