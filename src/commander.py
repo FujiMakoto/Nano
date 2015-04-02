@@ -105,6 +105,10 @@ class Commander:
         except CommandError as e:
             self.log.info('Command raised an exception: ' + e.error_message)
             return e.destination, e.error_message
+        except Exception as e:
+            self.log.error('Uncaught exception raised when executing a plugin command (Args: {args}, Opts: {opts})'
+                           .format(args=args, opts=opts), exc_info=e)
+            return "An unknown error occurred while trying to process your request"
 
     def _help_execute(self, plugin, command=None):
         """
@@ -168,6 +172,7 @@ class Commander:
             if syntax_match:
                 syntax = syntax_match.group(1)
                 self.log.debug('Syntax matched: ' + syntax)
+                break
 
         return syntax
 
