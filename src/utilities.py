@@ -40,7 +40,7 @@ class MessageParser:
     IRC_TEAL = "10"
     IRC_AQUA = "11"
     IRC_ROYAL = "12"
-    IRC_PINK = "12"
+    IRC_PINK = "13"
     IRC_GREY = "14"
     IRC_SILVER = "15"
 
