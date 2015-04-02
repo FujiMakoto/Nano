@@ -1,7 +1,7 @@
 from voluptuous import Schema, Required, Optional, All, Length, Range, Match, MultipleInvalid
 from database import DbSession
 from database.models import Network as NetworkModel
-from .validator import Validator, ValidationError
+from src.validator import Validator, ValidationError
 
 __author__     = "Makoto Fujikawa"
 __copyright__  = "Copyright 2015, Makoto Fujikawa"

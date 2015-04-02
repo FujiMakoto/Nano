@@ -3,12 +3,12 @@ nano_irc.py: Establish a new IRC connection
 """
 import logging
 from configparser import ConfigParser
-from .irc import IRC
-from .postmaster import Postmaster
-from .utilities import MessageParser
-from .commander import Commander
-from .logger import IRCChannelLogger, IRCQueryLogger, IRCLoggerSource
-from .ignore import IgnoreList
+
+from src.irc import IRCCommander, IRC, IRCChannelLogger, IRCQueryLogger, IRCLoggerSource
+from src.irc.postmaster import Postmaster
+from src.utilities import MessageParser
+from src.irc.ignore import IgnoreList
+
 
 __author__     = "Makoto Fujikawa"
 __copyright__  = "Copyright 2015, Makoto Fujikawa"
@@ -54,7 +54,7 @@ class NanoIRC(IRC):
         self.lang = language
 
         # Set up our Commander, Postmaster and MessageParser instances
-        self.commander = Commander(self)
+        self.commander = IRCCommander(self)
         self.postmaster = Postmaster(self)
         self.message_parser = MessageParser()
 
@@ -138,7 +138,7 @@ class NanoIRC(IRC):
         if self.commander.trigger_pattern.match(event.arguments[0]):
             self.log.info('Acknowledging {pub_or_priv} command request from {nick}'
                           .format(pub_or_priv='public' if public else 'private', nick=event.source.nick))
-            return self.commander.execute(event.arguments[0], event.source, public)
+            return self.commander.execute(event.arguments[0], source=event.source, public=public)
 
         # Query the language engine for a response
         self.lang.set_name(event.source.host, event.source.nick)

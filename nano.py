@@ -4,15 +4,13 @@ net_irc.py: Establish an IRC connection
 """
 import logging
 from configparser import ConfigParser
+
 from src.plugins import PluginManager
 from src.language import Language
-from src.nano_irc import NanoIRC
-from src.network import Network
+from src.irc.nano_irc import NanoIRC
+from src.irc.network import Network
 from src.cli.nano_cli import NanoCLI
 from plugins import Channel
-
-# from database import DbSession
-# from database.models import Network, Channel
 
 __author__     = "Makoto Fujikawa"
 __copyright__  = "Copyright 2015, Makoto Fujikawa"
