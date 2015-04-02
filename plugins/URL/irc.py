@@ -34,6 +34,7 @@ class Commands:
     def command_title(self, command):
         """
         Returns the title of a web page
+        Syntax: url title <url>
 
         Args:
             command(src.Command): The IRC command instance

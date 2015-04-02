@@ -1,5 +1,6 @@
 import logging
-from src.ignore import IgnoreList, IgnoreEntryAlreadyExistsError
+from plugins.exceptions import NotEnoughArgumentsError, InvalidSyntaxError
+from src.irc.ignore import IgnoreList, IgnoreEntryAlreadyExistsError
 
 
 # noinspection PyMethodMayBeStatic
@@ -81,6 +82,7 @@ class Commands:
     def admin_command_list(self, command):
         """
         Lists all currently ignored clients
+        Syntax: admin ignore list
 
         Args:
             command(src.Command): The IRC command instance
@@ -103,13 +105,15 @@ class Commands:
     def admin_command_add(self, command):
         """
         Adds a client to the ignore list
+        Syntax: admin ignore add <nick>
 
         Args:
             command(src.Command): The IRC command instance
         """
         destination = self._get_destination(command.public)
         if not len(command.args):
-            return destination, "Please specify the nick you wish to have ignored"
+            raise NotEnoughArgumentsError(command, 1, "Please specify the nick you wish to have ignored. "
+                                                      "Syntax: <strong>{syntax}</strong>", destination=destination)
 
         # Admin sanity check
         if str(command.source.nick).lower() == str(command.args[0]).lower():
@@ -120,19 +124,21 @@ class Commands:
     def admin_command_delete(self, command):
         """
         Deletes a client from the ignore list
+        Syntax: admin ignore delete <id>
 
         Args:
             command(src.Command): The IRC command instance
         """
         destination = self._get_destination(command.public)
         if not len(command.args):
-            return destination, "Please specify the ID of the ignore entry you wish to remove (See the list command)"
+            raise NotEnoughArgumentsError(command, 1, destination=destination)
 
         # Make sure we have a valid database ID
         try:
             db_id = int(command.args[0])
         except ValueError:
-            return destination, "Please specify a valid ignore list ID entry (See the list command)"
+            raise InvalidSyntaxError(command, "Please specify a valid ignore list ID entry (See the list command)",
+                                     destination=destination)
 
         # Remove the ignore list entry
         delete_status = self.ignore_list.delete_by_id(db_id)
@@ -146,6 +152,7 @@ class Commands:
     def admin_command_clear(self, command):
         """
         Deletes all ignore list entries
+        Syntax: admin ignore clear
 
         Args:
             command(src.Command): The IRC command instance

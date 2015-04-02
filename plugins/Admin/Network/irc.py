@@ -1,7 +1,9 @@
 import logging
-from src.network import Network
+
+from src.irc.network import Network
 from src.validator import ValidationError
 from plugins.exceptions import NotEnoughArgumentsError, InvalidSyntaxError
+
 
 
 # noinspection PyMethodMayBeStatic
@@ -17,37 +19,37 @@ class Commands:
 
         'list': [
             'Lists all saved networks',
-            'Syntax: list'
+            'Syntax: admin network list'
         ],
 
         'show': [
             'Displays detailed information about the specified network.',
-            'Syntax: show <strong><id></strong>'
+            'Syntax: admin network show <strong><id></strong>'
         ],
 
         'enable': [
             'Enables the networks <strong>autojoin</strong> flag',
-            'Syntax: enable <strong><id></strong>'
+            'Syntax: admin network enable <strong><id></strong>'
         ],
 
         'disable': [
             'Disables the networks <strong>autojoin</strong> flag',
-            'Syntax: disable <strong><id></strong>'
+            'Syntax: admin network disable <strong><id></strong>'
         ],
 
         'edit': [
             'Modifies an attribute for a saved network',
-            'Syntax: edit <strong><id> <attribute> <value></strong>'
+            'Syntax: admin network edit <strong><id> <attribute> <value></strong>'
         ],
 
         'create': [
             'Creates a new network',
-            'Syntax: create <strong><name> <host> <port></strong>'
+            'Syntax: admin network create <strong><name> <host> <port></strong>'
         ],
 
         'remove': [
             'Removes a saved network',
-            'Syntax: remove <strong><id></strong>'
+            'Syntax: admin network remove <strong><id></strong>'
         ],
     }
 
@@ -93,7 +95,7 @@ class Commands:
     def admin_command_list(self, command):
         """
         Lists all saved networks
-        Syntax: list
+        Syntax: admin network list
 
         Args:
             command(src.Command): The IRC command instance
@@ -121,7 +123,7 @@ class Commands:
     def admin_command_show(self, command):
         """
         Display detailed information about the specified network
-        Syntax: show <id>
+        Syntax: admin network show <id>
 
         Args:
             command(src.Command): The IRC command instance
@@ -163,7 +165,7 @@ class Commands:
     def admin_command_enable(self, command):
         """
         Enables a networks autojoin flag
-        Syntax: enable <id>
+        Syntax: admin network enable <id>
 
         Args:
             command(src.Command): The IRC command instance
@@ -189,7 +191,7 @@ class Commands:
     def admin_command_disable(self, command):
         """
         Disables a networks autojoin flag
-        Syntax: disable <id>
+        Syntax: admin network disable <id>
 
         Args:
             command(src.Command): The IRC command instance
@@ -215,7 +217,7 @@ class Commands:
     def admin_command_edit(self, command):
         """
         Modify a network attribute
-        Syntax: edit <id> <attribute> <value>
+        Syntax: admin network edit <id> <attribute> <value>
 
         Args:
             command(src.Command): The IRC command instance
@@ -259,7 +261,7 @@ class Commands:
     def admin_command_create(self, command):
         """
         Create a new network
-        Syntax: create <name> <host> <port>
+        Syntax: admin network create <name> <host> <port>
 
         Args:
             command(src.Command): The IRC command instance
@@ -277,7 +279,7 @@ class Commands:
         try:
             port = int(command.args[2])
         except ValueError:
-            raise InvalidSyntaxError(command, 'Please specify a valid port number. Syntax: <strong>{syntax}</strong>',
+            raise InvalidSyntaxError(command, 'Please specify a valid port number. Syntax: admin network <strong>{syntax}</strong>',
                                      destination=destination)
 
         # Create the network entry
@@ -292,7 +294,7 @@ class Commands:
     def admin_command_remove(self, command):
         """
         Delete an existing network
-        Syntax: delete <id>
+        Syntax: admin network delete <id>
 
         Args:
             command(src.Command): The IRC command instance

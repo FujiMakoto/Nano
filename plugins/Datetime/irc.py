@@ -31,6 +31,7 @@ class Commands:
     def command_date(self, command):
         """
         Return the current formatted date
+        Syntax: datetime date
 
         Args:
             command(src.Command): The IRC command instance
@@ -40,6 +41,7 @@ class Commands:
     def command_time(self, command):
         """
         Return the current formatted time
+        Syntax: datetime time
 
         Args:
             command(src.Command): The IRC command instance

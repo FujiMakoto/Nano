@@ -39,6 +39,7 @@ class Commands:
     def command_login(self, command):
         """
         Attempt to log the user in
+        Syntax: auth login <email> <password>
 
         Args:
             command(src.Command): The IRC command instance
@@ -49,7 +50,7 @@ class Commands:
 
         self.log.info('Attempting to authenticate ' + command.source.nick)
         try:
-            self.auth.attempt(command.args[0], command.args[1], command.source.host, command.irc.network)
+            self.auth.attempt(command.args[0], command.args[1], command.source.host, command.connection.network)
             response = "You have successfully logged in as <strong>{login}</strong>".format(login=command.args[0])
             self.log.info('{nick} successfully authenticated as {login}'
                           .format(nick=command.source.nick, login=command.args[0]))
@@ -59,7 +60,7 @@ class Commands:
             return "You must specify an email and password to log in"
         except AlreadyAuthenticatedError:
             self.log.info(command.source.nick + ' attempted to authenticate when already authenticated')
-            user = self.auth.user(command.source.host, command.irc.network)
+            user = self.auth.user(command.source.host, command.connection.network)
             return "You are already logged in as {login}!".format(login=user.email)
         except ValidationError as e:
             self.log.info(command.source.nick + ' provided login credentials that did not pass validation')
@@ -72,6 +73,7 @@ class Commands:
     def command_logout(self, command):
         """
         Attempt to log the user out
+        Syntax: auth logout
 
         Args:
             command(src.Command): The IRC command instance
@@ -81,7 +83,7 @@ class Commands:
             return command.source.nick + ", you can't run this command in public channels, please send me a query!"
 
         try:
-            self.auth.logout(command.source.host, command.irc.network)
+            self.auth.logout(command.source.host, command.connection.network)
             self.log.info(command.source.nick + ' successfully logged out')
             return "You have been successfully logged out"
         except NotAuthenticatedError:
@@ -91,6 +93,7 @@ class Commands:
     def command_whoami(self, command):
         """
         Return the e-mail of the account the user is currently logged into (if they are logged in)
+        Syntax: auth whoami
 
         Args:
             command(src.Command): The IRC command instance
@@ -99,8 +102,8 @@ class Commands:
             self.log.debug('Refusing to run private command WHOAMI in a public channel')
             return command.source.nick + ", you can't run this command in public channels, please send me a query!"
 
-        if self.auth.check(command.source.host, command.irc.network):
-            user = self.auth.user(command.source.host, command.irc.network)
+        if self.auth.check(command.source.host, command.connection.network):
+            user = self.auth.user(command.source.host, command.connection.network)
             self.log.debug('{nick} called WHOAMI while logged in as {login}'
                            .format(nick=command.source.nick, login=user.email))
             response = "You are logged in as <strong>{login}</strong>".format(login=user.email)

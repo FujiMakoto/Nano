@@ -1,5 +1,6 @@
 import logging
 from configparser import ConfigParser
+from plugins.exceptions import NotEnoughArgumentsError
 from .plugin import Dictionary
 
 __author__     = "Makoto Fujikawa"
@@ -38,19 +39,24 @@ class Commands:
     def command_define(self, command):
         """
         Looks up the definition of a word using the Merriam Webster dictionary
+        Syntax: dictionary define <word>
 
         Args:
             command(src.Command): The IRC command instance
         """
+        if not len(command.args):
+            raise NotEnoughArgumentsError(command, 1)
+
         # Do we have a definition limit option?
         max_definitions = self.max_default
         if 'max' in command.opts:
             max_definitions = min(abs(int(command.opts['max'])), self.max_limit)
 
         # Fetch our definitions
+        word = ' '.join(command.args)
         self.log.info('Fetching up to {max} definitions for the word {word}'
-                      .format(max=max_definitions, word=command.args[0]))
-        definitions = self.dictionary.define(command.args[0], max_definitions)
+                      .format(max=max_definitions, word=word))
+        definitions = self.dictionary.define(word, max_definitions)
 
         if not definitions:
             return "Sorry, I couldn't find a definition for <strong>{word}</strong>".format(word=command.args[0])
@@ -60,7 +66,7 @@ class Commands:
         for index, definition in enumerate(definitions):
             if not formatted_definitions:
                 formatted_definitions.append("<strong>{word}</strong> (<em>{pos}</em>) <strong>1:</strong> {definition}"
-                                             .format(word=definition[0], pos=definition[1], definition=definition[2]))
+                                             .format(word=word, pos=definition[1], definition=definition[2]))
             else:
                 formatted_definitions.append("<strong>{key}:</strong> {definition}"
                                              .format(key=index + 1, definition=definition[2]))
