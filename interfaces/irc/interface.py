@@ -3,11 +3,8 @@ nano_irc.py: Establish a new IRC connection
 """
 import logging
 from configparser import ConfigParser
-
-from src.irc import IRCCommander, IRC, IRCChannelLogger, IRCQueryLogger, IRCLoggerSource
-from src.irc.postmaster import Postmaster
 from src.utilities import MessageParser
-from src.irc.ignore import IgnoreList
+from . import IRCCommander, IgnoreList, IRC, IRCChannelLogger, IRCQueryLogger, IRCLoggerSource, Postmaster
 
 
 __author__     = "Makoto Fujikawa"

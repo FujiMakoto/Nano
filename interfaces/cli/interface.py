@@ -3,10 +3,12 @@ nano_cli.py: Establish a new CLI session
 """
 import os
 import logging
+
 from src.utilities import MessageParser
 from .postmaster import Postmaster
 from .commander import CLICommander
-from .shell import NanoShell
+from interfaces.cli.shell import NanoShell
+
 
 __author__     = "Makoto Fujikawa"
 __copyright__  = "Copyright 2015, Makoto Fujikawa"

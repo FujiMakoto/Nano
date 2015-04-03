@@ -5,7 +5,7 @@ class NanoShell(cmd.Cmd):
     """
     Nano shell interpreter
     """
-    intro = 'Welcome to the Nano shell.  Type \'start\' to start. Type \'help\' or \'?\' to list commands.\n'
+    intro = 'Welcome to the Nano shell.  Type \'start\' to initialize. Type \'help\' or \'?\' to list commands.\n'
     prompt = '(nano) '
     file = None
 
