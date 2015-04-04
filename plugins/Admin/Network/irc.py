@@ -1,7 +1,6 @@
 import logging
 
-from src.irc.network import Network
-from src.validator import ValidationError
+from interfaces.irc.network import Network
 from plugins.exceptions import NotEnoughArgumentsError, InvalidSyntaxError
 
 

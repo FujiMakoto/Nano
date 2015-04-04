@@ -14,7 +14,7 @@ class CommandError(Exception):
                 or queries for private messages.
             message(str or None, optional): The exception error message. Defaults to None
         """
-        super(CommandError, self).__init__(message)
+        super(CommandError, self).__init__(message)  # TODO: Is there a reason we're passing arguments to super()?
         self.command = command
         self.error_message = error_message
 

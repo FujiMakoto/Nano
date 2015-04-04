@@ -1,6 +1,8 @@
 import logging
+
 from plugins.exceptions import NotEnoughArgumentsError, InvalidSyntaxError
-from src.irc.ignore import IgnoreList, IgnoreEntryAlreadyExistsError
+from interfaces.irc.ignore import IgnoreList, IgnoreEntryAlreadyExistsError
+
 
 
 # noinspection PyMethodMayBeStatic

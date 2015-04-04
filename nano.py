@@ -1,28 +1,26 @@
 #!/usr/bin/env python3.4
 """
-net_irc.py: Establish an IRC connection
+Nano Launcher
 """
 import logging
 from configparser import ConfigParser
-
+from src.interfaces import InterfaceManager
 from src.plugins import PluginManager
 from src.language import Language
-from src.irc.nano_irc import NanoIRC
-from src.irc.network import Network
-from src.cli.nano_cli import NanoCLI
-from plugins import Channel
-
-__author__     = "Makoto Fujikawa"
-__copyright__  = "Copyright 2015, Makoto Fujikawa"
-__version__    = "1.0.0"
-__maintainer__ = "Makoto Fujikawa"
 
 
 class Nano:
+    """
+    Nano master class
+    """
     def __init__(self):
+        """
+        Initialize a new Nano instance
+        """
         # Load our configuration
         self.config = ConfigParser()
         self.config.read('config/system.cfg')
+        self.interfaces = None
         self.plugins = None
         self.language = None
 
@@ -57,7 +55,11 @@ class Nano:
             file_logger.setFormatter(self.log_formatter)
             self.log.addHandler(file_logger)
 
-        # Loud our plugins
+        # Load interfaces
+        self.interfaces = InterfaceManager()
+        self.interfaces.load_all()
+
+        # Loud plugins
         if self.config.getboolean('Plugins', 'Enabled'):
             self.plugins = PluginManager()
             self.plugins.load_all()
@@ -66,30 +68,24 @@ class Nano:
         if self.config.getboolean('Language', 'Enabled'):
             self.language = Language(self.plugins)
 
-    def irc(self):
-        # Fetch our autojoin networks
-        net = Network()
-        networks = net.all()
+    def start(self):
+        """
+        Start Nano by establishing connections on all enabled protocols and networks
+        """
+        # Fetch all our available interfaces minus the CLI interface
+        interfaces = self.interfaces.all()
+        interfaces.pop('cli')
 
-        for network in networks:
-            self.log.info('Connecting to Network: ' + network.name)
-            # Fetch our autojoin channels
-            chan = Channel()
-            channels = chan.all(network)
-
-            # @TODO: Add proper multi-channel support
-            for channel in channels:
-                nano_irc = NanoIRC(network, channel, self.plugins, self.language)
-                nano_irc.start()
+        # TODO: Multiple interfaces are not actually supported yet. So, all we are really doing is calling IRC directly
+        interfaces['irc'].start(self)
 
     def cli(self):
-        NanoCLI(self)
+        """
+        Launch the Nano administration shell
+        """
+        # TODO: If an argument is passed to the script (e.g. ./nano.py start), just execute that single command instead
+        self.interfaces.get('cli').start(self)
 
-
-def main():
-    nano = Nano()
-    nano.cli()
-
-
+# Launch the administration shell on script execution
 if __name__ == "__main__":
-    main()
+    Nano().cli()

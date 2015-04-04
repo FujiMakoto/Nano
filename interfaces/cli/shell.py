@@ -5,7 +5,7 @@ class NanoShell(cmd.Cmd):
     """
     Nano shell interpreter
     """
-    intro = 'Welcome to the Nano shell.  Type \'start\' to start. Type \'help\' or \'?\' to list commands.\n'
+    intro = 'Welcome to the Nano shell.  Type \'start\' to initialize. Type \'help\' or \'?\' to list commands.\n'
     prompt = '(nano) '
     file = None
 
@@ -23,7 +23,7 @@ class NanoShell(cmd.Cmd):
 
     def do_start(self, arg):
         """Establish connections on all enabled protocols"""
-        self.nano.irc()
+        self.nano.start()
 
     def do_chat(self, arg):
         """Initialize a chat session with Nano"""
