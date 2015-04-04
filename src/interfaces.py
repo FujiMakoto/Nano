@@ -179,16 +179,31 @@ class Interface:
         self._load_interface()
 
     def _load_interface(self):
+        """
+        Attempt to load the Interface class
+        """
         self.log.debug('Loading interface: ' + self.name)
         # Make sure we have an Interface class before trying to import
         if hasattr(self.module_import, 'Interface'):
             self.log.debug('Loading {name} Interface'.format(name=self.name))
             self.interface_class = getattr(self.module_import, 'Interface')
+            return
+
+        self.log.error('Loaded interface, {name}, has no callable Interface class'.format(name=self.name))
 
     def start(self, nano):
+        """
+        Initialize and start the Interface
+
+        Args:
+            nano(Nano): The Nano instance to bind to the interface
+        """
         if callable(self.interface_class):
             interface = self.interface_class
             interface(nano).start()
+            return
+
+        self.log.error('Loaded interface, {name}, has no callable Interface class'.format(name=self.name))
 
 
 class InterfaceNotLoadedError(Exception):
