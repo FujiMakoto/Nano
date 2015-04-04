@@ -1,1 +1,2 @@
-sqlacodegen=1.1.5
+sqlacodegen<1.2
+Sphinx
