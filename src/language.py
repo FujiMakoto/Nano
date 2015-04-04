@@ -2,6 +2,7 @@
 language.py: Nano language and response processing library
 """
 import os
+from glob import glob
 import re
 import logging
 from ast import literal_eval
@@ -45,12 +46,20 @@ class Language:
 
         # Load the system language files
         self.log.info('Loading system language files')
-        self.rs.load_directory(self.config['Language']['SystemPath'])
+        system_lang_path = self.config['Language']['SystemPath']
+        self.rs.load_directory(system_lang_path)
+
+        # Load the custom language files
+        # TODO: Consider providing recursive loading / sub-directory support
+        custom_lang_path = os.path.join(system_lang_path, 'custom')
+        if glob(os.path.join(custom_lang_path, '*.rive')):
+            self.log.info('Loading custom language files')
+            self.rs.load_directory(custom_lang_path)
 
         # Load plugin language files
         if self.plugins:
             for plugin_name, plugin in self.plugins.all().items():
-                plugin_lang_path = os.path.join(plugin.plugin_path, 'lang')
+                plugin_lang_path = os.path.join(plugin.path, 'lang')
                 if os.path.isdir(plugin_lang_path):
                     self.log.info('Loading {plugin} language files'.format(plugin=plugin.name))
                     self.rs.load_directory(plugin_lang_path)
