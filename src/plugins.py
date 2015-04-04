@@ -225,13 +225,13 @@ class Plugin:
                 event_class = getattr(module_import, 'Events')
                 self.event_classes[name] = event_class()
 
-    def get_command(self, interface_name, command_name, command_prefix='command_'):
+    def get_command(self, command_name, interface_name, command_prefix='command_'):
         """
         Retrieve a callable command method if it exists
 
         Args:
-            interface_name(str): The name of the active interface
             command_name(str): The name of the command to retrieve
+            interface_name(str): The name of the active interface
             command_prefix(str, optional): The prefix of the command method. Defaults to 'command_'
 
         Returns:
@@ -257,13 +257,13 @@ class Plugin:
                        .format(prefix=command_prefix, command_name=command_name, plugin_name=self.name))
         return
 
-    def get_event(self, interface_name, event_name):
+    def get_event(self, event_name, interface_name):
         """
         Retrieve a callable IRC event method if it exists
 
         Args:
-            interface_name(str): The name of the active interface
             event_name(str): The name of the event to retrieve
+            interface_name(str): The name of the active interface
 
         Returns:
             bound method or None
