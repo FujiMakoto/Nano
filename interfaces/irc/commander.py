@@ -2,11 +2,6 @@ import logging
 from src.plugins import PluginNotLoadedError
 from src.commander import Commander, Command
 
-__author__     = "Makoto Fujikawa"
-__copyright__  = "Copyright 2015, Makoto Fujikawa"
-__version__    = "1.0.0"
-__maintainer__ = "Makoto Fujikawa"
-
 
 class IRCCommander(Commander):
     """
@@ -51,7 +46,7 @@ class IRCCommander(Commander):
 
         # Are we executing a help command?
         if help_command:
-            return self._help_execute(plugin, command)
+            return self._help_execute(plugin, command, 'irc')
 
         # Are we authenticated?
         if self.auth.check(source.host, self.connection.network):
@@ -59,17 +54,17 @@ class IRCCommander(Commander):
 
             # If we're an administrator, attempt to execute an admin command
             if user.is_admin:
-                response = self._execute(command, plugin, args, opts, source, public, admin_prefix)
+                response = self._execute(command, 'irc', plugin, args, opts, source, public, admin_prefix)
                 if response:
                     return response
 
             # Attempt to execute an unprivileged user command
-            response = self._execute(command, plugin, args, opts, source, public, user_prefix)
+            response = self._execute(command, 'irc', plugin, args, opts, source, public, user_prefix)
             if response:
                 return response
 
         # Attempt to execute a public command
-        return self._execute(command, plugin, args, opts, source, public)
+        return self._execute(command, 'irc', plugin, args, opts, source, public)
 
     def event(self, event_name, event):
         """
@@ -92,8 +87,8 @@ class IRCCommander(Commander):
         # Loop through and execute our events
         replies = []
         for plugin_name, plugin in self.connection.plugins.all().items():
-            if plugin.has_irc_events():
-                event_method = plugin.get_irc_event(event_name)
+            if plugin.has_events('irc'):
+                event_method = plugin.get_event(event_name, 'irc')
                 if callable(event_method):
                     event_replies = event_method(event, self.connection)
                     if event_replies:
