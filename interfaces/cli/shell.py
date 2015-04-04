@@ -23,7 +23,7 @@ class NanoShell(cmd.Cmd):
 
     def do_start(self, arg):
         """Establish connections on all enabled protocols"""
-        self.nano.irc()
+        self.nano.start()
 
     def do_chat(self, arg):
         """Initialize a chat session with Nano"""

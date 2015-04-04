@@ -10,12 +10,6 @@ from .commander import CLICommander
 from interfaces.cli.shell import NanoShell
 
 
-__author__     = "Makoto Fujikawa"
-__copyright__  = "Copyright 2015, Makoto Fujikawa"
-__version__    = "1.0.0"
-__maintainer__ = "Makoto Fujikawa"
-
-
 # noinspection PyMethodMayBeStatic
 class NanoCLI():
     """
@@ -28,22 +22,23 @@ class NanoCLI():
         Args:
             nano(Nano): The master Nano class instance
         """
+        self.nano = nano
         # Logging
         self.log = logging.getLogger('nano.cli')
 
         # Bind plugins
-        if nano.plugins:
-            self.log.debug('Binding plugins to CLI session ({id})'.format(id=id(nano.plugins)))
+        if self.nano.plugins:
+            self.log.debug('Binding plugins to CLI session ({id})'.format(id=id(self.nano.plugins)))
         else:
             self.log.debug('Not binding any plugins to CLI session')
-        self.plugins = nano.plugins
+        self.plugins = self.nano.plugins
 
         # Bind language
-        if nano.language:
-            self.log.debug('Binding language to CLI session ({id})'.format(id=id(nano.language)))
+        if self.nano.language:
+            self.log.debug('Binding language to CLI session ({id})'.format(id=id(self.nano.language)))
         else:
             self.log.debug('Not binding any language to CLI session')
-        self.lang = nano.language
+        self.lang = self.nano.language
 
         # Set up our CLICommander, Postmaster and MessageParser instances
         self.commander = CLICommander(self)
@@ -52,7 +47,6 @@ class NanoCLI():
 
         # Set up shell
         os.system('clear')
-        NanoShell(nano, self).cmdloop()
 
     def _handle_replies(self, replies):
         """
@@ -65,8 +59,21 @@ class NanoCLI():
             self.log.debug('Delivering response messages')
             self.postmaster.deliver(replies)
         else:
-            print("\n")
             self.log.debug('No response received')
+
+    def start(self, command=None):
+        """
+        Starts the shell interpreter
+
+        Args:
+            command(None or str): Executes the single command provided. Defaults to None (regular shell mode)
+        """
+        # Are we executing a single command?
+        if command:
+            NanoShell(self.nano, self).onecmd('start')
+
+        # Otherwise, drop into the shell interpreter in a command loop
+        NanoShell(self.nano, self).cmdloop()
 
     def get_replies(self, message):
         """
