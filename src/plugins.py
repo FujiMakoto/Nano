@@ -299,10 +299,7 @@ class Plugin:
             bool
         """
         self.log.debug('Checking if {plugin_name} has Commands'.format(plugin_name=self.name))
-        try:
-            return self.command_classes[interface_name] is not None
-        except KeyError:
-            return False
+        return interface_name in self.command_classes
 
     def has_events(self, interface_name):
         """
@@ -315,10 +312,7 @@ class Plugin:
             bool
         """
         self.log.debug('Checking if {plugin_name} has Events'.format(plugin_name=self.name))
-        try:
-            return self.event_classes[interface_name] is not None
-        except KeyError:
-            return False
+        return interface_name in self.event_classes
 
     def __str__(self):
         """
