@@ -61,7 +61,7 @@ class Nano:
 
         # Loud plugins
         if self.config.getboolean('Plugins', 'Enabled'):
-            self.plugins = PluginManager()
+            self.plugins = PluginManager(self.interfaces.all())
             self.plugins.load_all()
 
         # Load the language engine
