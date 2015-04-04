@@ -7,6 +7,42 @@ class IRCCommander(Commander):
     """
     IRC Command and Event dispatcher
     """
+    EVENT_JOIN = "on_join"
+    EVENT_PART = "on_part"
+    EVENT_QUIT = "on_quit"
+    EVENT_KICK = "on_kick"
+    EVENT_PUBMSG = "on_public_message"
+    EVENT_PRIVMSG = "on_private_message"
+    EVENT_PUBACTION = "on_public_action"
+    EVENT_PRIVACTION = "on_private_action"
+    EVENT_PUBNOTICE = "on_public_notice"
+    EVENT_PRIVNOTICE = "on_private_notice"
+
+    _eventToName = {
+        EVENT_JOIN: 'EVENT_JOIN',
+        EVENT_PART: 'EVENT_PART',
+        EVENT_QUIT: 'EVENT_QUIT',
+        EVENT_KICK: 'EVENT_KICK',
+        EVENT_PUBMSG: 'EVENT_PUBMSG',
+        EVENT_PRIVMSG: 'EVENT_PRIVMSG',
+        EVENT_PUBACTION: 'EVENT_PUBACTION',
+        EVENT_PRIVACTION: 'EVENT_PRIVACTION',
+        EVENT_PUBNOTICE: 'EVENT_PUBNOTICE',
+        EVENT_PRIVNOTICE: 'EVENT_PRIVNOTICE',
+    }
+    _nameToEvent = {
+        'EVENT_JOIN': EVENT_JOIN,
+        'EVENT_PART': EVENT_PART,
+        'EVENT_QUIT': EVENT_QUIT,
+        'EVENT_KICK': EVENT_KICK,
+        'EVENT_PUBMSG': EVENT_PUBMSG,
+        'EVENT_PRIVMSG': EVENT_PRIVMSG,
+        'EVENT_PUBACTION': EVENT_PUBACTION,
+        'EVENT_PRIVACTION': EVENT_PRIVACTION,
+        'EVENT_PUBNOTICE': EVENT_PUBNOTICE,
+        'EVENT_PRIVNOTICE': EVENT_PRIVNOTICE,
+    }
+
     def __init__(self, connection):
         """
         Initialize a new IRC Commander instance
@@ -82,7 +118,7 @@ class IRCCommander(Commander):
             self.log.debug('Not firing events for command requests')
             return
 
-        self.log.debug('Firing ' + self._methodToName[event_name])
+        self.log.debug('Firing ' + self._eventToName[event_name])
 
         # Loop through and execute our events
         replies = []
