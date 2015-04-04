@@ -5,7 +5,7 @@ import logging
 from abc import ABCMeta, abstractmethod
 from src.plugins import PluginNotLoadedError
 from src.validator import ValidationError
-from plugins.exceptions import CommandError
+from plugins.exceptions import CommandError, NotEnoughArgumentsError
 from src.auth import Auth
 
 __author__     = "Makoto Fujikawa"
@@ -20,6 +20,7 @@ class Commander:
     """
     __metaclass__ = ABCMeta
 
+    # TODO: Move these events to the IRC commander
     EVENT_JOIN = "on_join"
     EVENT_PART = "on_part"
     EVENT_QUIT = "on_quit"
@@ -70,6 +71,8 @@ class Commander:
 
         # Docstring syntax pattern
         self.docstring_syntax = re.compile('^Syntax: (.+)$')
+        self.syntax_optional_arg = re.compile('\[<([^>]+)>\]')
+        self.syntax_required_arg = re.compile('<([^>]+)>')
 
         # Option patterns
         self.short_opt_pattern = re.compile('^\-([a-zA-Z])$')
@@ -78,7 +81,7 @@ class Commander:
         # Command instance
         self.command = Command
 
-    def _execute(self, command, plugin, args, opts, source, public, command_prefix='command_'):
+    def _execute(self, command_name, plugin, args, opts, source, public, command_prefix='command_'):
         """
         Handle execution of the specified command
 
@@ -96,10 +99,14 @@ class Commander:
         """
         # Get our commands class name for the requested plugin
         try:
-            command = self.connection.plugins.get(plugin).get_irc_command(command, command_prefix)
-            if callable(command):
-                syntax = self._get_command_syntax(command)
-                return command(self.command(self.connection, args, opts, source=source, public=public, syntax=syntax))
+            command_method = self.connection.plugins.get(plugin).get_irc_command(command_name, command_prefix)
+            if callable(command_method):
+                syntax, min_args = self._parse_command_syntax(command_method)
+                command = self.command(self.connection, args, opts, source=source, public=public, syntax=syntax)
+                if len(args) < min_args:
+                    self.log.info('Not enough arguments supplied to execute this command')
+                    raise NotEnoughArgumentsError(command, min_args)
+                return command_method(command)
         # Plugin not found
         except PluginNotLoadedError:
             self.log.info('Attempted to execute a command from a plugin that is not loaded or does not exist')
@@ -153,7 +160,7 @@ class Commander:
         return "Either no help entry is available for <strong>{command}</strong> or the command does not exist"\
             .format(command=command)
 
-    def _get_command_syntax(self, command):
+    def _parse_command_syntax(self, command):
         """
         Attempts to retrieve the command syntax from the commands docstring
 
@@ -161,28 +168,35 @@ class Commander:
             command(method): The command method to inspect
 
         Returns:
-            str or None
+            tuple (0: str or None, 1: int)
         """
         syntax = None
+        args_required = 0
 
         if not callable(command):
-            return None
+            return syntax, args_required
 
         self.log.debug('Fetching command docstring')
         try:
             docstrings = inspect.getdoc(command).split('\n')
         except AttributeError:
-            return None
+            return syntax, args_required
 
         self.log.debug('Inspecting docstring for command syntax')
         for docstring in docstrings:
             syntax_match = self.docstring_syntax.match(docstring)
             if syntax_match:
+                # Set our syntax
                 syntax = syntax_match.group(1)
                 self.log.debug('Syntax matched: ' + syntax)
+
+                # Get the number of required arguments
+                required_args = self.syntax_optional_arg.sub('', syntax)
+                args_required = len(self.syntax_required_arg.findall(required_args))
+                self.log.debug('{num} required arguments registered'.format(num=args_required))
                 break
 
-        return syntax
+        return syntax, args_required
 
     def _parse_command_string(self, command_string):
         """
