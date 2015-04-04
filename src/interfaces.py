@@ -1,5 +1,6 @@
 import os
 import pkgutil
+import importlib
 import logging
 from configparser import ConfigParser
 
@@ -113,6 +114,35 @@ class InterfaceManager:
         self.log.debug('Checking whether the interface "{name}" is loaded or not'.format(name=name))
         return name.lower() in self.interfaces
 
+    def get(self, name):
+        """
+        Return an instance of the specified interface
+
+        Args:
+            name(str): The name of the interface to retrieve
+
+        Returns:
+            method
+
+        Raises:
+            InterfaceNotLoadedError: Raised when attempting to get an interface that does not exist or is not loaded
+        """
+        self.log.info('Requesting the "{name}" interface'.format(name=name))
+        if name.lower() in self.interfaces:
+            return self.interfaces[name.lower()]
+
+        raise InterfaceNotLoadedError('The requested interface, "{name}", has not been loaded'.format(name=name))
+
+    def all(self):
+        """
+        Returns the interfaces dictionary
+
+        Returns:
+            dict
+        """
+        self.log.info('Returning all loaded interfaces')
+        return self.interfaces
+
 
 class Interface:
     """
@@ -135,6 +165,31 @@ class Interface:
         self.interface_base_path = base_path
         self.interface_path = path
 
+        # Set the interface class placeholder
+        self.log.debug('Importing interface: ' + name)
+        self.import_path = "{interface_dir}.{name}".format(interface_dir=self.interface_base_path, name=name)
+        self.module_import = importlib.import_module(self.import_path)
+        self.interface_class = None
+
         # Set the interface name and configuration
         self.name = name
         self.config = config
+
+        # Finally, load and initialize everything
+        self._load_interface()
+
+    def _load_interface(self):
+        self.log.debug('Loading interface: ' + self.name)
+        # Make sure we have an Interface class before trying to import
+        if hasattr(self.module_import, 'Interface'):
+            self.log.debug('Loading {name} Interface'.format(name=self.name))
+            self.interface_class = getattr(self.module_import, 'Interface')
+
+    def start(self, nano):
+        if callable(self.interface_class):
+            interface = self.interface_class
+            interface(nano).start()
+
+
+class InterfaceNotLoadedError(Exception):
+    pass
