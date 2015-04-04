@@ -34,7 +34,6 @@ class IRCCommander(Commander):
         Returns:
             list, tuple, str or None: Returns replies to send to the client, or None if nothing should be returned
         """
-        print(__name__)
         # Command prefixes
         admin_prefix = "admin_command_"
         user_prefix  = "user_command_"
