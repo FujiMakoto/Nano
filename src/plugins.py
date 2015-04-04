@@ -24,7 +24,7 @@ class PluginManager:
         # Load our system plugins path
         self.sys_config = ConfigParser()
         self.sys_config.read('config/system.cfg')
-        self.plugins_base_path = self.sys_config.get('Paths', 'Plugins')
+        self.plugins_base_path = self.sys_config.get('Plugins', 'SystemPath')
 
     def load_all(self, including_disabled=False):
         """
@@ -161,6 +161,7 @@ class Plugin:
     """
     Plugin handler
     """
+    # TODO: Redundant arguments
     def __init__(self, name, plugins_base_path, plugin_path, config):
         """
         Initialize a new Plugin instance
