@@ -8,11 +8,6 @@ from src.validator import ValidationError
 from plugins.exceptions import CommandError, NotEnoughArgumentsError
 from src.auth import Auth
 
-__author__     = "Makoto Fujikawa"
-__copyright__  = "Copyright 2015, Makoto Fujikawa"
-__version__    = "1.0.0"
-__maintainer__ = "Makoto Fujikawa"
-
 
 class Commander:
     """
@@ -81,12 +76,13 @@ class Commander:
         # Command instance
         self.command = Command
 
-    def _execute(self, command_name, plugin, args, opts, source, public, command_prefix='command_'):
+    def _execute(self, command_name, interface_name, plugin, args, opts, source, public, command_prefix='command_'):
         """
         Handle execution of the specified command
 
         Args:
-            command(str): Name of the command to execute
+            command_name(str): Name of the command to execute
+            interface_name(str): Name of the active interface
             plugin(str): Name of the plugin
             args(list): The command arguments
             opts(dict): The command options
@@ -99,7 +95,8 @@ class Commander:
         """
         # Get our commands class name for the requested plugin
         try:
-            command_method = self.connection.plugins.get(plugin).get_irc_command(command_name, command_prefix)
+            plugin = self.connection.plugins.get(plugin)
+            command_method = plugin.get_command(command_name, interface_name, command_prefix)
             if callable(command_method):
                 syntax, min_args = self._parse_command_syntax(command_method)
                 command = self.command(self.connection, args, opts, source=source, public=public, syntax=syntax)
@@ -125,13 +122,14 @@ class Commander:
                            .format(args=args, opts=opts), exc_info=e)
             return "An unknown error occurred while trying to process your request"
 
-    def _help_execute(self, plugin, command=None):
+    def _help_execute(self, plugin, command_name, interface_name):
         """
         Return the help entry for the specified plugin or plugin command
 
         Args:
             plugin(str): Name of the requested plugin
-            command(str): Name of the requested command
+            command_name(str): Name of the requested command
+            interface_name(str): Name of the active interface
 
         Returns:
             str, dict, list or None: The help entry, or None if no help entry exists
@@ -141,24 +139,26 @@ class Commander:
 
         if self.connection.plugins.is_loaded(plugin):
             # Load the commands class and check if a help dictionary exists in it
-            commands_class = self.connection.plugins.get(plugin).commands_class
-            if hasattr(commands_class, 'commands_help'):
-                commands_help = commands_class.commands_help
+            plugin = self.connection.plugins.get(plugin)
+            if interface_name in plugin.command_classes:
+                commands_class = plugin.command_classes[interface_name]
+                if hasattr(commands_class, 'commands_help'):
+                    commands_help = commands_class.commands_help
 
         # Attempt to retrieve the requested help entry
         if commands_help:
-            if not command and 'main' in commands_help:
+            if not command_name and 'main' in commands_help:
                 return commands_help['main']
 
-            if command and command in commands_help:
-                return commands_help[command]
+            if command_name and command_name in commands_help:
+                return commands_help[command_name]
         else:
             return "Either no help entries for <strong>{plugin}</strong> are available or the plugin does not exist"\
                 .format(plugin=plugin)
 
         # Return a default message if we didn't get anything
-        return "Either no help entry is available for <strong>{command}</strong> or the command does not exist"\
-            .format(command=command)
+        return "Either no help entry is available for <strong>{command_name}</strong> or the command does not exist"\
+            .format(command_name=command_name)
 
     def _parse_command_syntax(self, command):
         """
