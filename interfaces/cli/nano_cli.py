@@ -40,14 +40,6 @@ class NanoCLI():
             self.log.debug('Not binding any language to CLI session')
         self.lang = self.nano.language
 
-        # Set up our CLICommander, Postmaster and MessageParser instances
-        self.commander = CLICommander(self)
-        self.postmaster = Postmaster(self)
-        self.message_parser = MessageParser()
-
-        # Set up shell
-        os.system('clear')
-
     def _handle_replies(self, replies):
         """
         Deliver replies
@@ -73,7 +65,9 @@ class NanoCLI():
             NanoShell(self.nano, self).onecmd('start')
 
         # Otherwise, drop into the shell interpreter in a command loop
-        NanoShell(self.nano, self).cmdloop()
+        os.system('clear')
+        while True:
+            NanoShell(self.nano, self).cmdloop()
 
     def get_replies(self, message):
         """
