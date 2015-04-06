@@ -1,5 +1,4 @@
 import logging
-
 from interfaces.irc.network import Network
 from plugins.exceptions import NotEnoughArgumentsError, InvalidSyntaxError
 
@@ -180,6 +179,9 @@ class Commands:
         # Make sure we have a valid database ID
         network = self._get_network_by_id(command.args[0], command, destination)
 
+        if not network:
+            return destination, "No network with the specified ID exists"
+
         # Enable autojoin
         network.autojoin = True
         self.network_list.dbs.commit()
@@ -206,7 +208,10 @@ class Commands:
         # Make sure we have a valid database ID
         network = self._get_network_by_id(command.args[0], command, destination)
 
-        # Enable autojoin
+        if not network:
+            return destination, "No network with the specified ID exists"
+
+        # Disable autojoin
         network.autojoin = False
         self.network_list.dbs.commit()
 
@@ -271,8 +276,8 @@ class Commands:
         try:
             port = int(command.args[2])
         except ValueError:
-            raise InvalidSyntaxError(command, 'Please specify a valid port number. Syntax: admin network <strong>{syntax}</strong>',
-                                     destination=destination)
+            raise InvalidSyntaxError(command, 'Please specify a valid port number.  Syntax: admin network '
+                                              '<strong>{syntax}</strong>', destination=destination)
 
         # Create the network entry
         self.network_list.create(name, host, port)
