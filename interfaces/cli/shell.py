@@ -1,14 +1,11 @@
-import cmd
+import logging
+from src.cmd import NanoCmd
 
 
-class NanoShell(cmd.Cmd):
+class NanoShell(NanoCmd):
     """
     Nano shell interpreter
     """
-    intro = 'Welcome to the Nano shell.  Type \'start\' to initialize. Type \'help\' or \'?\' to list commands.\n'
-    prompt = '(nano) '
-    file = None
-
     def __init__(self, nano, cli):
         """
         Initialize a new Nano Shell instance
@@ -17,9 +14,27 @@ class NanoShell(cmd.Cmd):
             nano(Nano): The master Nano class instance
             cli(src.cli.nano_cli.NanoCLI): The Nano CLI instance
         """
-        super().__init__()
+        self.log = logging.getLogger('nano.cmd')
+        # Set our Nano and CLI instances and ready a list of plugins for iteration
         self.nano = nano
         self.cli = cli
+        self.plugins = self.nano.plugins.all().items() if self.nano else None
+
+        # Load our available plugins
+        self._load_plugins()
+        super().__init__()
+
+    def _load_plugins(self):
+        """
+        Load and programmatically create all available plugin CLI command methods
+        """
+        for name, plugin in self.plugins:
+            # Do not attempt to create methods for sub-plugins
+            if '.' not in name and plugin.has_commands('cli'):
+                self.log.debug('Loading CLI commands for ' + name)
+                # Load the CLI commands class and retrieve a list of all module methods
+                commands = plugin.command_classes['cli']
+                setattr(self, 'do_' + name, type(commands))
 
     def do_start(self, arg):
         """Establish connections on all enabled protocols"""
@@ -28,20 +43,6 @@ class NanoShell(cmd.Cmd):
     def do_chat(self, arg):
         """Initialize a chat session with Nano"""
         ChatShell(self.cli).start()
-
-    def do_bye(self, arg):
-        """Quit the shell session"""
-        print('Bye!')
-        return True
-
-    def precmd(self, line):
-        """
-        Command pre-processing
-
-        Args:
-            line(str): The line to pre-process
-        """
-        return line.lower()
 
 
 class ChatShell():
