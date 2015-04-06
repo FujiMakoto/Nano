@@ -1,11 +1,5 @@
 import logging
-from src.plugins import PluginNotLoadedError
 from src.commander import Commander
-
-__author__     = "Makoto Fujikawa"
-__copyright__  = "Copyright 2015, Makoto Fujikawa"
-__version__    = "1.0.0"
-__maintainer__ = "Makoto Fujikawa"
 
 
 class CLICommander(Commander):
@@ -24,28 +18,16 @@ class CLICommander(Commander):
         self.log = logging.getLogger('nano.cli.commander')
 
     def execute(self, command_string, **kwargs):
+        pass
+
+    def parse_line(self, line):
         """
-        Attempt to execute the specified command
+        Parse a Cmd line into arguments and options
 
         Args:
-            command_args(str): The command to execute
-
-        Returns:
-            list, tuple, str or None: Returns replies to send to the client, or None if nothing should be returned
+            line(str): The Cmd arguments
         """
-        # Parse our command string into names, arguments and options
-        try:
-            args, opts = self._parse_command_string(command_string)
-            plugin, command, args, help_command = self._parse_command_arguments(args)
-        except PluginNotLoadedError:
-            return None
-
-        # Are we executing a help command?
-        if help_command:
-            return self._help_execute(plugin, command)
-
-        # Attempt to execute a public command
-        return self._execute(command, plugin, args, opts)
+        return self._parse_command_string(line)
 
 
 class CLICommand:
