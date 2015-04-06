@@ -2,6 +2,7 @@ from src.cmd import NanoCmd
 from interfaces.irc.network import Network
 
 
+# noinspection PyTypeChecker
 class Commands(NanoCmd):
     """
     Network administration commands
@@ -14,6 +15,7 @@ class Commands(NanoCmd):
         """
         super().__init__()
         self.network_list = Network()
+        self.validator = self.network_list.validate.editing
 
     def _get_network_by_id(self, db_id):
         """
@@ -181,26 +183,26 @@ class Commands(NanoCmd):
     def do_create(self, line):
         """
         Create a new network
-        Syntax: create <name> <host> <port>
+        Syntax: create
         """
-        # Format our args / opts and make sure we have enough args
-        args, opts = self.commander.parse_line(line)
-        if len(args) < 3:
-            return self.printf('Not enough arguments provided. Syntax: <strong>create <name> <host> <port></strong>')
-
-        # Set the attributes
-        name = str(args[0])
-        host = str(args[1])
-        try:
-            port = int(args[2])
-        except ValueError:
-            return print('Please specify a valid port number')
+        # Request / set the input attributes
+        inputs = {'name': self.validated_input('name', self.validator),
+                  'host': self.validated_input('host', self.validator),
+                  'port': self.validated_input('port', self.validator, required=False, default=6667, cast=int),
+                  'nick': self.validated_input('nick', self.validator, required=False, default='Nano'),
+                  'autojoin': self.validated_input('autojoin', self.validator, required=False, default=True,
+                                                   yes_or_no=True),
+                  'has_services': self.validated_input('has_services', self.validator, required=False, default=True,
+                                                       yes_or_no=True),
+                  'auth_method': self.validated_input('auth_method', self.validator, required=False),
+                  'user_password': self.validated_input('user_password', self.validator, required=False),
+                  'server_password': self.validated_input('server_password', self.validator, required=False)}
 
         # Create the network entry
-        self.network_list.create(name, host, port)
+        self.network_list.create(**inputs)
 
         return self.printf("Network <strong>{name}</strong> successfully created (<strong>{host}:{port}</strong>)"
-                           .format(name=name, host=host, port=port))
+                           .format(name=inputs['name'], host=inputs['host'], port=inputs['port']))
 
     def do_remove(self, line):
         """
