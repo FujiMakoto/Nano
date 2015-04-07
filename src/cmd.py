@@ -4,7 +4,6 @@ import cmd
 import logging
 from src.utilities import MessageParser
 from src.validator import ValidationError
-from interfaces.cli.commander import CLICommander
 from interfaces.cli.postmaster import Postmaster
 
 
@@ -24,8 +23,7 @@ class NanoCmd(cmd.Cmd):
         # Debug logger
         self.log = logging.getLogger('nano.cmd')
 
-        # Set up our CLICommander, Postmaster and MessageParser instances
-        self.commander = CLICommander(self)
+        # Set up our Postmaster and MessageParser instances
         self.postmaster = Postmaster(self)
         self.message_parser = MessageParser()
 
@@ -54,14 +52,14 @@ class NanoCmd(cmd.Cmd):
         prompt_name = prompt_name or str(name).replace('_', ' ').capitalize().strip()
 
         # Optional Yes or No field
-        if yes_or_no and (default and not required):
+        if yes_or_no and (default is not None and not required):
             prompt_default = 'Yes' if default is True else 'No'
             prompt = '[{prompt}? (Default: {default})] '.format(prompt=prompt_name, default=prompt_default)
         # Required Yes or No field
-        elif yes_or_no and (default and required):
+        elif yes_or_no and (default is not None and required):
             prompt = '[{prompt}? (Yes or No)] '.format(prompt=prompt_name)
         # Optional regular field
-        elif default and not required:
+        elif default is not None and not required:
             prompt = '[{prompt} (Default: {default})] '.format(prompt=prompt_name, default=default)
         # Required regular field
         else:
