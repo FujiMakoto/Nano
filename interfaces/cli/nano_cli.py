@@ -3,10 +3,6 @@ nano_cli.py: Establish a new CLI session
 """
 import os
 import logging
-
-from src.utilities import MessageParser
-from .postmaster import Postmaster
-from .commander import CLICommander
 from interfaces.cli.shell import NanoShell
 
 
@@ -79,12 +75,6 @@ class NanoCLI():
         Returns:
             list, tuple, str or None
         """
-        # Are we trying to call a command directly?
-        if self.commander.trigger_pattern.match(message):
-            self.log.info('Acknowledging command request')
-            self._handle_replies(self.commander.execute(message))
-            return
-
         self.log.debug('Querying language engine for a response')
         replies = self.lang.get_reply('!cli', message)
 
