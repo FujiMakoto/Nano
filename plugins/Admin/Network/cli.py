@@ -1,5 +1,5 @@
 from src.cmd import NanoCmd
-from interfaces.irc.network import Network
+from interfaces.irc.network import Network, NetworkNotFoundError
 
 
 # noinspection PyTypeChecker
@@ -17,29 +17,6 @@ class Commands(NanoCmd):
         self.network_list = Network()
         self.validator = self.network_list.validate.editing
 
-    def _get_network_by_id(self, db_id):
-        """
-        Retrieve a network by its database ID
-
-        Args:
-            db_id(int): The database ID
-            command(src.Command): The IRC command instance
-            destination(str): The message destination
-
-        Returns:
-            database.models.Network
-
-        Raises:
-            InvalidSyntaxError: Raised if the supplied ID is not a valid integer
-        """
-        # Retrieve the network
-        try:
-            db_id = int(db_id)
-        except ValueError:
-            return False
-
-        return self.network_list.get(db_id)
-
     def do_list(self, arg):
         """
         Lists all saved networks
@@ -48,7 +25,7 @@ class Commands(NanoCmd):
 
         # No networks found
         if not networks:
-            print('No networks found')
+            return print('No networks found')
 
         # Loop through the networks and print them out
         for network in networks:
@@ -56,7 +33,7 @@ class Commands(NanoCmd):
             autojoin = bool(network.autojoin)
             color = 'green' if autojoin else 'red'
 
-            # Set and return the formatted response string
+            # Set and print the formatted response string
             message = '<strong>{id}:</strong> <p class="fg-{color}">{name}</p> ({host}:{port})'
             message = message.format(id=network.id, color=color, name=network.name, host=network.host,
                                      port=network.port)
@@ -64,7 +41,7 @@ class Commands(NanoCmd):
 
     def do_show(self, line):
         """
-        Display detailed information about the specified network
+        Display detailed information about a specified network
         Syntax: show <id>
         """
         # Format our args / opts and make sure we have enough args
@@ -73,11 +50,11 @@ class Commands(NanoCmd):
             return print('Please specify a valid network ID')
 
         # Attempt to fetch the requested network
-        network = self._get_network_by_id(args[0])
-
-        if network is False:
+        try:
+            network = self.network_list.get(int(args[0]))
+        except ValueError:
             return print('Please specify a valid network ID')
-        if network is None:
+        except NetworkNotFoundError:
             return print('No network with the specified ID exists')
 
         # Set the autojoin and service statuses
@@ -134,11 +111,11 @@ class Commands(NanoCmd):
             return print('Please specify a valid network ID')
 
         # Attempt to fetch the requested network
-        network = self._get_network_by_id(args[0])
-
-        if network is False:
+        try:
+            network = self.network_list.get(int(args[0]))
+        except ValueError:
             return print('Please specify a valid network ID')
-        if network is None:
+        except NetworkNotFoundError:
             return print('No network with the specified ID exists')
 
         # Disable autojoin
@@ -158,11 +135,11 @@ class Commands(NanoCmd):
             return self.printf('Not enough arguments provided. Syntax: <strong>edit <id> <attribute> <value></strong>')
 
         # Attempt to fetch the requested network
-        network = self._get_network_by_id(args[0])
-
-        if network is False:
+        try:
+            network = self.network_list.get(int(args[0]))
+        except ValueError:
             return print('Please specify a valid network ID')
-        if network is None:
+        except NetworkNotFoundError:
             return print('No network with the specified ID exists')
 
         # Make sure we have a valid attribute
@@ -215,11 +192,11 @@ class Commands(NanoCmd):
             return self.printf('Please specify a valid network ID')
 
         # Attempt to fetch the requested network
-        network = self._get_network_by_id(args[0])
-
-        if network is False:
+        try:
+            network = self.network_list.get(int(args[0]))
+        except ValueError:
             return print('Please specify a valid network ID')
-        if network is None:
+        except NetworkNotFoundError:
             return print('No network with the specified ID exists')
 
         # Delete the network
