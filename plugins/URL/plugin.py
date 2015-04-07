@@ -104,7 +104,8 @@ class URL:
         Returns:
             str
         """
-        title = 'Title: ' + title
+        title = ''.join(title.splitlines())
+        title = 'Title: ' + str(title).strip()
         host = urlparse(url).netloc
         if host:
             title += ' (at {host})'.format(host=host)
