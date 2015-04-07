@@ -1,7 +1,7 @@
 import bcrypt
 from database import MemorySession
 from database.models import UserSession
-from .user import User, UserValidators, UserDoesNotExistsError
+from .user import User, UserValidators, UserNotFoundError
 
 __author__     = "Makoto Fujikawa"
 __copyright__  = "Copyright 2015, Makoto Fujikawa"
@@ -83,7 +83,7 @@ class Auth:
 
         # Make sure the user exists
         if not user:
-            raise UserDoesNotExistsError("Attempted to authenticate as a non-existing user")
+            raise UserNotFoundError("Attempted to authenticate as a non-existing user")
 
         # Check our password
         password = password.encode('utf-8')
@@ -113,7 +113,7 @@ class Auth:
 
         # Make sure the user exists
         if not user:
-            raise UserDoesNotExistsError("Attempted to login as a non-existing user")
+            raise UserNotFoundError("Attempted to login as a non-existing user")
 
         return self.session.create(user, network, hostmask)
 

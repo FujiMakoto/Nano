@@ -1,7 +1,7 @@
 import logging
 from src.validator import ValidationError
 from src.auth import Auth, AlreadyAuthenticatedError, InvalidPasswordError, NotAuthenticatedError
-from src.user import UserDoesNotExistsError
+from src.user import UserNotFoundError
 
 
 class Commands:
@@ -69,7 +69,7 @@ class Commands:
         except ValidationError as e:
             self.log.info(command.source.nick + ' provided login credentials that did not pass validation')
             return e.error_message
-        except (UserDoesNotExistsError, InvalidPasswordError):
+        except (UserNotFoundError, InvalidPasswordError):
             self.log.info(command.source.nick + ' attempted to login using an invalid email/password combination')
             return "Either no account under this email exists or you supplied an incorrect password, please double" \
                    " check your login credentials and try again"
