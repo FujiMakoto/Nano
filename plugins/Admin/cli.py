@@ -19,11 +19,14 @@ class Commands(NanoCmd):
         """
         super().__init__()
         self.plugin = plugin
+        # Sigh.
+        if type(plugin) is str:
+            self.cmdloop()
 
     def do_network(self, arg):
         """Create, delete and modify the IRC networks"""
-        NetworkCommands().cmdloop()
+        NetworkCommands(None).cmdloop()
 
     def do_channel(self, arg):
         """Create, delete and modify the IRC channels"""
-        ChannelCommands().cmdloop()
+        ChannelCommands(None).cmdloop()
