@@ -9,12 +9,7 @@ from .ignore import IgnoreList
 from .irc import IRC
 from .logger import IRCChannelLogger, IRCQueryLogger, IRCLoggerSource
 from .postmaster import Postmaster
-
-
-__author__     = "Makoto Fujikawa"
-__copyright__  = "Copyright 2015, Makoto Fujikawa"
-__version__    = "1.0.0"
-__maintainer__ = "Makoto Fujikawa"
+from .network import Network
 
 
 # noinspection PyMethodMayBeStatic
@@ -217,6 +212,11 @@ class NanoIRC(IRC):
         # TODO: Multi-channel support
         self.log.info('Joining channel: ' + self.channel.name)
         connection.join(self.channel.name)
+
+        # Authenticate to NickServ
+        if self.network.auth_method == Network.AUTH_NICKSERV and self.network.user_password:
+            self.log.info('Authenticating to NickServ')
+            connection.privmsg('NickServ', 'IDENTIFY {password}'.format(password=self.network.user_password))
 
     def on_feature_list(self, connection, event):
         """
