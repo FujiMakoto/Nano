@@ -127,10 +127,11 @@ class Channel:
         kwargs = dict((key, value) for key, value in kwargs.items() if value)
 
         # Validate input
+        network = kwargs.pop('network')
         self.validate.creation(**kwargs)
 
         # Set up a new Channel Model
-        new_channel = ChannelModel(**kwargs)
+        new_channel = ChannelModel(network=network, **kwargs)
 
         # Insert the new channel into our database
         self.dbs.add(new_channel)
