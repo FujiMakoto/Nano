@@ -1,3 +1,4 @@
+import shlex
 from src.cmd import NanoCmd
 from interfaces.irc.network import Network, NetworkNotFoundError
 
@@ -17,7 +18,7 @@ class Commands(NanoCmd):
         self.network_list = Network()
         self.validator = self.network_list.validate.editing
 
-    def do_list(self, arg):
+    def do_list(self, line):
         """
         Lists all saved networks
         """
@@ -45,7 +46,7 @@ class Commands(NanoCmd):
         Syntax: show <id>
         """
         # Format our args / opts and make sure we have enough args
-        args, opts = self.commander.parse_line(line)
+        args = shlex.split(line)
         if not len(args):
             return print('Please specify a valid network ID')
 
@@ -82,12 +83,17 @@ class Commands(NanoCmd):
         Syntax: enable <id>
         """
         # Format our args / opts and make sure we have enough args
-        args, opts = self.commander.parse_line(line)
+        args = shlex.split(line)
         if not len(args):
             return print('Please specify a valid network ID')
 
         # Attempt to fetch the requested network
-        network = self._get_network_by_id(args[0])
+        try:
+            network = self.network_list.get(int(args[0]))
+        except ValueError:
+            return print('Please specify a valid network ID')
+        except NetworkNotFoundError:
+            return print('No network with the specified ID exists')
 
         if network is False:
             return print('Please specify a valid network ID')
@@ -106,7 +112,7 @@ class Commands(NanoCmd):
         Syntax: disable <id>
         """
         # Format our args / opts and make sure we have enough args
-        args, opts = self.commander.parse_line(line)
+        args = shlex.split(line)
         if not len(args):
             return print('Please specify a valid network ID')
 
@@ -130,7 +136,7 @@ class Commands(NanoCmd):
         Syntax: edit <id> <attribute> <value>
         """
         # Format our args / opts and make sure we have enough args
-        args, opts = self.commander.parse_line(line)
+        args = shlex.split(line)
         if len(args) < 3:
             return self.printf('Not enough arguments provided. Syntax: <strong>edit <id> <attribute> <value></strong>')
 
@@ -187,7 +193,7 @@ class Commands(NanoCmd):
         Syntax: delete <id>
         """
         # Format our args / opts and make sure we have enough args
-        args, opts = self.commander.parse_line(line)
+        args = shlex.split(line)
         if not len(args):
             return self.printf('Please specify a valid network ID')
 
