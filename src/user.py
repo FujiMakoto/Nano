@@ -1,56 +1,123 @@
 import bcrypt
-from voluptuous import Schema, Required, All, Length, MultipleInvalid
+from voluptuous import Schema, Required, Optional, All, Length
 from database import DbSession
 from database.models import User as UserModel
-from .validator import Validator, ValidationError
-
-__author__     = "Makoto Fujikawa"
-__copyright__  = "Copyright 2015, Makoto Fujikawa"
-__version__    = "1.0.0"
-__maintainer__ = "Makoto Fujikawa"
+from .validator import Validator
 
 
 class User:
-    def __init__(self, network=None, client_hostmask=None):
+    """
+    Register, validate, modify delete and retrieve User accounts from the database
+    """
+    # Attributes
+    EMAIL = "email"
+    PASSWORD = "password"
+    NICK = "nick"
+    IS_ADMIN = "is_admin"
+
+    validAttributes = [EMAIL, PASSWORD, NICK, IS_ADMIN]
+
+    def __init__(self):
+        """
+        Initialize a new User instance
+        """
         self.dbs = DbSession()
         self.validate = UserValidators()
-        self.network = network
-        self.client_hostmask = client_hostmask
+
+    def all(self):
+        """
+        Returns a list of all registered users
+
+        Returns:
+            list or None
+        """
+        return self.dbs.query(UserModel).all()
 
     def exists(self, email):
+        """
+        Check whether a user by the specified email exists
+
+        Args:
+            email(str): The email address to lookup
+
+        Returns:
+            bool
+        """
         return bool(self.dbs.query(UserModel).filter(UserModel.email == email).count())
 
     def get(self, email):
-        return self.dbs.query(UserModel).filter(UserModel.email == email).first()
+        """
+        Retrieve a user by their email / login
 
-    def get_by_id(self, id):
-        return self.dbs.query(UserModel).filter(UserModel.id == id).first()
+        Args:
+            email(str): The users login / email address
 
-    def create(self, email, nick, password):
-        # Hash our supplied password
-        password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+        Returns:
+            database.models.User
+        """
+        user = self.dbs.query(UserModel).filter(UserModel.email == email).first()
 
-        # Set up a new User Model
-        new_user = UserModel(email=email, nick=nick, password=password)
+        if not user:
+            raise UserNotFoundError
 
-        # Insert the new user into our database
-        self.dbs.add(new_user)
-        self.dbs.commit()
+        return user
 
-    def register(self, email, nick, password):
-        # Make sure we instantiated with our network and client host
-        if not self.network or not self.client_hostmask:
-            raise BadInstantiationError("User must be instantiated with network and client_hostmask to use this method")
+    def get_by_id(self, db_id):
+        """
+        Retrieve a user by their database ID
+
+        Args:
+            db_id(int): The database ID of the user
+
+        Returns:
+            database.models.User
+        """
+        user = self.dbs.query(UserModel).filter(UserModel.id == db_id).first()
+
+        if not user:
+            raise UserNotFoundError
+
+        return user
+
+    def create(self, email, nick, password, **kwargs):
+        """
+        Create a new user account
+
+        Args:
+            email(str): The users login / email address
+            nick(str): The users nickname / display name
+            password(str): The users password
+        """
+        # Set arguments
+        kwargs = dict(email=email, nick=nick, password=password, **kwargs)
+        kwargs = dict((key, value) for key, value in kwargs.items() if value)
 
         # Validate our user input
-        self.validate.registration(email=email, nick=nick, password=password)
+        self.validate.registration(**kwargs)
 
         # Make sure an account with this e-mail doesn't already exist
         if self.exists(email):
             raise UserAlreadyExistsError("An account with this e-mail address already exists")
 
-        # Process the registration request
-        self.create(email, nick, password)
+        # Hash our supplied password
+        kwargs['password'] = bcrypt.hashpw(kwargs['password'].encode('utf-8'), bcrypt.gensalt())
+
+        # Set up a new User Model
+        new_user = UserModel(**kwargs)
+
+        # Insert the new user into our database
+        self.dbs.add(new_user)
+        self.dbs.commit()
+
+    def remove(self, user):
+        """
+        Delete an existing user
+
+        Args:
+            user(database.models.User): The User to remove
+        """
+        self.dbs.delete(user)
+        self.dbs.commit()
 
 
 class UserValidators(Validator):
@@ -62,7 +129,8 @@ class UserValidators(Validator):
         self.rules = {
             'email': All(str, self.Email(), Length(max=255)),
             'nick': All(str, Length(max=50)),
-            'password': All(str, Length(min=6, max=1024))
+            'password': All(str, Length(min=6, max=1024)),
+            'is_admin': All(bool)
         }
 
         # Set our validation messages
@@ -91,13 +159,23 @@ class UserValidators(Validator):
 
         self.validate(schema, **kwargs)
 
+    def single(self, **kwargs):
+        schema = Schema({
+            Optional('email'): self.rules['email'],
+            Optional('nick'): self.rules['nick'],
+            Optional('password'): self.rules['password'],
+            Optional('is_admin'): self.rules['is_admin']
+        })
+
+        self.validate(schema, **kwargs)
+
 
 # Exceptions
 class UserAlreadyExistsError(Exception):
     pass
 
 
-class UserDoesNotExistsError(Exception):
+class UserNotFoundError(Exception):
     pass
 
 
