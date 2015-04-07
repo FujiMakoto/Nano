@@ -56,7 +56,7 @@ class Commands:
         definitions = self.dictionary.define(word, max_definitions)
 
         if not definitions:
-            return "Sorry, I couldn't find a definition for <strong>{word}</strong>".format(word=command.args[0])
+            return "Sorry, I couldn't find a definition for <strong>{word}</strong>".format(word=word)
 
         # Format our definitions
         formatted_definitions = []
