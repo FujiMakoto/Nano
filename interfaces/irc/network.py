@@ -1,18 +1,14 @@
-from voluptuous import Schema, Required, Optional, All, Length, Range, Match, MultipleInvalid
+from voluptuous import Schema, Required, Optional, All, Length, Range, Match
 from database import DbSession
 from database.models import Network as NetworkModel
-from src.validator import Validator, ValidationError
-
-__author__     = "Makoto Fujikawa"
-__copyright__  = "Copyright 2015, Makoto Fujikawa"
-__version__    = "1.0.0"
-__maintainer__ = "Makoto Fujikawa"
+from src.validator import Validator
 
 
 class Network:
     """
     Create, modify, delete and retrieve IRC Networks from the database
     """
+    # Attributes
     NAME = "name"
     HOST = "host"
     PORT = "port"
@@ -24,6 +20,12 @@ class Network:
     SERV_PASS = "server_password"
 
     validAttributes = [NAME, HOST, PORT, NICK, AUTOJOIN, HAS_SERVICES, AUTH_METHOD, USER_PASS, SERV_PASS]
+
+    # Auth methods
+    AUTH_NICKSERV = "NICKSERV"
+    AUTH_SERVPASS = "SERVPASS"
+
+    validAuthMethods = [AUTH_NICKSERV, AUTH_SERVPASS]
 
     def __init__(self):
         """
@@ -85,20 +87,24 @@ class Network:
 
         Raises:
             MissingArgumentsError: Neither the network name or host were passed as arguments
+            NetworkNotFoundError: The requested network could not be found
         """
+        network = None
         if db_id:
-            return self.dbs.query(NetworkModel).filter(NetworkModel.id == db_id).first()
+            network = self.dbs.query(NetworkModel).filter(NetworkModel.id == db_id).first()
+        elif name:
+            network = self.dbs.query(NetworkModel).filter(NetworkModel.name == name).first()
+        elif host:
+            network = self.dbs.query(NetworkModel).filter(NetworkModel.host == host).first()
+        else:
+            raise MissingArgumentsError("You must specify either a network ID, name or host to retrieve")
 
-        if name:
-            return self.dbs.query(NetworkModel).filter(NetworkModel.name == name).first()
+        if not network:
+            raise NetworkNotFoundError
 
-        if host:
-            return self.dbs.query(NetworkModel).filter(NetworkModel.host == host).first()
+        return network
 
-        raise MissingArgumentsError("You must specify either a network name or host to retrieve")
-
-    def create(self, name, host, port=6667, server_password=None, nick=None, user_password=None, has_services=True,
-               autojoin=True):
+    def create(self, name, host, **kwargs):
         """
         Create a new network
 
@@ -110,21 +116,22 @@ class Network:
             nick(str, optional): A custom IRC nick to use on this server. Defaults to None
             nick_password(str, optional): The password used to identify to network services. Defaults to None
             has_services(bool, optional): Whether or not the network has a services engine. Defaults to True
+            user_password(str, optional): NickServ account password
+            auth_method(str or None, optional): The NickServ authentication method
             autojoin(bool, optional): Should we automatically join this network on startup? Defaults to True
 
         Returns:
             database.models.Network
         """
         # Set arguments
-        args = dict(name=name, host=host, port=port, server_password=server_password, nick=nick,
-                    user_password=user_password, has_services=has_services, autojoin=autojoin)
-        args = dict((key, value) for key, value in args.items() if value)
+        kwargs = dict(name=name, host=host, **kwargs)
+        kwargs = dict((key, value) for key, value in kwargs.items() if value)
 
         # Validate input
-        self.validate.creation(**args)
+        self.validate.creation(**kwargs)
 
         # Set up a new Network Model
-        new_network = NetworkModel(**args)
+        new_network = NetworkModel(**kwargs)
 
         # Insert the new network into our database
         self.dbs.add(new_network)
@@ -137,7 +144,7 @@ class Network:
         Delete an existing network
 
         Args:
-            network(database.models.Network)
+            network(database.models.Network): The Network to remove
         """
         self.dbs.delete(network)
         self.dbs.commit()
@@ -212,4 +219,8 @@ class NetworkValidators(Validator):
 
 # Exceptions
 class MissingArgumentsError(Exception):
+    pass
+
+
+class NetworkNotFoundError(Exception):
     pass
