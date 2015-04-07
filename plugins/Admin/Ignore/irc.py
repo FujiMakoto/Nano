@@ -76,7 +76,7 @@ class Commands:
             whois = whois.pop(0)
             self.log.info('Adding {nick} to the client ignore list'.format(nick=command.args[0]))
             self.ignore_list.add(whois[2])
-            command.irc.ignore_list.synchronize()
+            command.connection.ignore_list.synchronize()
             return command.deliver_response((destination, "{host} ({nick}) successfully added to the ignore list"
                                             .format(host=command.args[0], nick=whois[2])))
         except IgnoreEntryAlreadyExistsError as e:
@@ -149,7 +149,7 @@ class Commands:
         delete_status = self.ignore_list.delete_by_id(db_id)
 
         if delete_status is True:
-            command.irc.ignore_list.synchronize()
+            command.connection.ignore_list.synchronize()
             return destination, "Ignore list entry successfully removed"
 
         return destination, "No such ignore list entry exists"
@@ -164,5 +164,5 @@ class Commands:
         """
         destination = self._get_destination(command.public)
         self.ignore_list.clear()
-        command.irc.ignore_list.synchronize()
+        command.connection.ignore_list.synchronize()
         return destination, "Ignore list cleared successfully"
