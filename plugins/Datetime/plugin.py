@@ -1,20 +1,20 @@
 import datetime
 import logging
-import configparser
 
 
-class Datetime():
-    def __init__(self):
+class Datetime:
+    def __init__(self, plugin):
         """
         Initialize a new Datetime instance
+
+        Args:
+            plugin(src.plugins.Plugin): The plugin instance
         """
         # Get the plugin configuration
-        self.config  = configparser.ConfigParser()
-        self.config.read('plugins/Datetime/plugin.cfg')
-        self.enabled = self.config.getboolean('Plugin', 'Enabled')
+        self.plugin  = plugin
+        self.enabled = self.plugin.config.getboolean('Plugin', 'Enabled')
         self.log     = logging.getLogger('nano.plugins.datetime')
         self.now     = datetime.datetime.now()
-
 
     @staticmethod
     def suffix(day):

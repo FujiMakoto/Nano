@@ -10,6 +10,16 @@ class Commands(NanoCmd):
     """
     prompt = '(admin) '
 
+    def __init__(self, plugin):
+        """
+        Initialize a new Admin Commands instance
+
+        Args:
+            plugin(src.plugins.Plugin): The plugin instance
+        """
+        super().__init__()
+        self.plugin = plugin
+
     def do_network(self, arg):
         """Create, delete and modify the IRC networks"""
         NetworkCommands().cmdloop()

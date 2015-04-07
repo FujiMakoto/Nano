@@ -10,11 +10,15 @@ class Commands(NanoCmd):
     """
     prompt = '(network) '
 
-    def __init__(self):
+    def __init__(self, plugin):
         """
         Initialize a new Admin Network Commands instance
+
+        Args:
+            plugin(src.plugins.Plugin): The plugin instance
         """
         super().__init__()
+        self.plugin = plugin
         self.network_list = Network()
         self.validator = self.network_list.validate.editing
 

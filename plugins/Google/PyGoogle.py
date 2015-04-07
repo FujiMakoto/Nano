@@ -64,9 +64,8 @@ If this header is not present, a value of en is assumed.
 
 class PyGoogle:
 
-    def __init__(self, query, pages=None, hl='en'):
-        self.config = ConfigParser()
-        self.config.read('plugins/Google/plugin.cfg')
+    def __init__(self, query, config, pages=None, hl='en'):
+        self.config = config
         self.pages  = pages or ceil(self.config.getint('Search', 'DefaultResults') / 8)
         self.query  = query
         self.filter = int(self.config.getboolean('Search', 'FilterDuplicates'))
@@ -224,27 +223,3 @@ class PyGoogle:
         Prints results (for command line)
         """
         self.__search__(True)
-
-
-def main():
-    """
-    Main function
-    """
-    parser = argparse.ArgumentParser(description='A simple Google search module for Python')
-    parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', default=False, help='Verbose mode')
-    parser.add_argument('-p', '--pages', dest='pages', action='store', default=1, help='Number of pages to return. Max 10')
-    parser.add_argument('-hl', '--language', dest='language', action='store', default='en', help="language. default is 'en'")
-    parser.add_argument('query', nargs='*', default=None)
-    args = parser.parse_args()
-    query = ' '.join(args.query)
-    log_level = logging.INFO
-    if args.verbose:
-        log_level = logging.DEBUG
-    if not query:
-        parser.print_help()
-        exit()
-    search = PyGoogle(log_level=log_level, query=query, pages=args.pages, hl=args.language)
-    search.display_results()
-
-if __name__ == "__main__":
-    main()

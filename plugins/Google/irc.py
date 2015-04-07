@@ -24,11 +24,15 @@ class Commands:
         ],
     }
 
-    def __init__(self):
+    def __init__(self, plugin):
         """
         Initialize a new auth Commands instance
+
+        Args:
+            plugin(src.plugins.Plugin): The plugin instance
         """
-        self.google = Google()
+        self.plugin = plugin
+        self.google = Google(self.plugin)
         self.log = logging.getLogger('nano.plugins.google')
 
     def command_search(self, command):

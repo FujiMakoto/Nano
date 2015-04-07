@@ -103,14 +103,19 @@ class PluginManager:
         Returns:
             configparser.ConfigParser or None
         """
-        # Make sure a configuration file for this plugin exists
-        config_path = os.path.join(plugin_path, 'plugin.cfg')
-        if not os.path.isfile(config_path):
+        # Make sure a default configuration file for this plugin exists
+        default_config_path = os.path.join(plugin_path, 'plugin.def.cfg')
+        if not os.path.isfile(default_config_path):
             return
 
-        # Load and return a ConfigParser instance
         config = ConfigParser()
-        config.read(config_path)
+        config.read_file(open(default_config_path))
+
+        # Apply any custom configuration directives
+        custom_config_path = os.path.join(plugin_path, 'plugin.cfg')
+        if os.path.isfile(custom_config_path):
+            config.read(custom_config_path)
+
         return config
 
     def is_loaded(self, name):
@@ -216,14 +221,14 @@ class Plugin:
                 self.log.debug('Loading {plugin_name} {interface_name} Commands'
                                .format(plugin_name=self.name, interface_name=name))
                 command_class = getattr(module_import, 'Commands')
-                self.command_classes[name] = command_class()
+                self.command_classes[name] = command_class(self)
 
             # See if we have an Events class, and import it into our events dictionary if so
             if hasattr(module_import, 'Events'):
                 self.log.debug('Loading {plugin_name} {interface_name} Events'
                                .format(plugin_name=self.name, interface_name=name))
                 event_class = getattr(module_import, 'Events')
-                self.event_classes[name] = event_class()
+                self.event_classes[name] = event_class(self)
 
     def get_command(self, command_name, interface_name, command_prefix='command_'):
         """

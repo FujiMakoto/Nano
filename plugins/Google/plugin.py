@@ -1,6 +1,5 @@
 import logging
 from math import ceil
-from configparser import ConfigParser
 from .PyGoogle import PyGoogle
 
 
@@ -8,16 +7,15 @@ class Google:
     """
     Perform Google search queries
     """
-    def __init__(self):
+    def __init__(self, plugin):
         """
         Initialize a new Google instance
         """
         # Get the plugin configuration
         self.log = logging.getLogger('nano.plugins.google')
-        self.config = ConfigParser()
-        self.config.read('plugins/Google/plugin.cfg')
-        self.enabled = self.config.getboolean('Plugin', 'Enabled')
-        self.result_limit = self.config.getint('Search', 'MaxResults')
+        self.plugin = plugin
+        self.enabled = self.plugin.config.getboolean('Plugin', 'Enabled')
+        self.result_limit = self.plugin.config.getint('Search', 'MaxResults')
 
     def _search(self, query, max_results):
         """
@@ -34,7 +32,7 @@ class Google:
         max_results = min(max_results, self.result_limit)
         self.log.info('Retrieving {max} results for the search query: {query}'.format(max=max_results, query=query))
         pages = ceil(max_results / 8)
-        google = PyGoogle(query, pages)
+        google = PyGoogle(query, self.plugin.config, pages)
         results = google.search()
 
         # Did we not get any results?

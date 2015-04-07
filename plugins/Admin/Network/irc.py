@@ -50,11 +50,15 @@ class Commands:
         ],
     }
 
-    def __init__(self):
+    def __init__(self, plugin):
         """
         Initialize a new Admin Network Commands instance
+
+        Args:
+            plugin(src.plugins.Plugin): The plugin instance
         """
         self.log = logging.getLogger('nano.plugins.admin.network.irc.commands')
+        self.plugin = plugin
         self.network_list = Network()
 
     def _get_destination(self, public):

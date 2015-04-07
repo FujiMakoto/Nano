@@ -12,16 +12,20 @@ class Commands(NanoCmd):
     """
     prompt = '(channel) '
 
-    def __init__(self):
+    def __init__(self, plugin):
         """
         Initialize a new Admin Channel Commands instance
+
+        Args:
+            plugin(src.plugins.Plugin): The plugin instance
         """
         super().__init__()
+        self.plugin = plugin
         self.channel_list = Channel()
         self.network_list = Network()
         self.validator = self.channel_list.validate.single
         self.network = None
-        self.network_commands = NetworkCommands()
+        self.network_commands = NetworkCommands(None)
 
     def _get_network(self, allow_none=False):
         """

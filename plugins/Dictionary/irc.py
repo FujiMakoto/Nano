@@ -3,11 +3,6 @@ from configparser import ConfigParser
 from plugins.exceptions import NotEnoughArgumentsError
 from .plugin import Dictionary
 
-__author__     = "Makoto Fujikawa"
-__copyright__  = "Copyright 2015, Makoto Fujikawa"
-__version__    = "1.0.0"
-__maintainer__ = "Makoto Fujikawa"
-
 
 class Commands:
     """
@@ -25,16 +20,18 @@ class Commands:
         ],
     }
 
-    def __init__(self):
+    def __init__(self, plugin):
         """
         Initialize a new Dictionary Commands instance
+
+        Args:
+            plugin(src.plugins.Plugin): The plugin instance
         """
         self.log = logging.getLogger('nano.plugins.dictionary.irc.commands')
-        self.config = ConfigParser()
-        self.config.read('plugins/Dictionary/plugin.cfg')
-        self.dictionary = Dictionary(self.config['MerriamWebster']['ApiKey'])
-        self.max_limit = self.config.getint('Dictionary', 'MaxDefinitions')
-        self.max_default = self.config.getint('Dictionary', 'DefaultMaxDefinitions')
+        self.plugin = plugin
+        self.dictionary = Dictionary(self.plugin)
+        self.max_limit = self.plugin.config.getint('Dictionary', 'MaxDefinitions')
+        self.max_default = self.plugin.config.getint('Dictionary', 'DefaultMaxDefinitions')
 
     def command_define(self, command):
         """

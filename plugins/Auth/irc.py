@@ -29,10 +29,14 @@ class Commands:
         ]
     }
 
-    def __init__(self):
+    def __init__(self, plugin):
         """
         Initialize a new Auth Commands instance
+
+        Args:
+            plugin(src.plugins.Plugin): The plugin instance
         """
+        self.plugin = plugin
         self.auth = Auth()
         self.log = logging.getLogger('nano.plugins.auth.irc.commands')
 
@@ -117,10 +121,14 @@ class Events:
     """
     IRC Events for the Auth plugin
     """
-    def __init__(self):
+    def __init__(self, plugin):
         """
         Initialize a new Auth Events instance
+
+        Args:
+            plugin(src.plugins.Plugin): The plugin instance
         """
+        self.plugin = plugin
         self.auth = Auth()
         self.log = logging.getLogger('nano.plugins.auth.irc.events')
 

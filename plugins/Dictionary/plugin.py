@@ -1,22 +1,22 @@
 import logging
 from .webster import CollegiateDictionary, WordNotFoundException, InvalidAPIKeyException
 
-__author__     = "Makoto Fujikawa"
-__copyright__  = "Copyright 2015, Makoto Fujikawa"
-__version__    = "1.0.0"
-__maintainer__ = "Makoto Fujikawa"
-
 
 class Dictionary:
     """
     If you don't know what a dictionary is, look it up in the dictionary
     """
-    def __init__(self, api_key=None):
+    def __init__(self, plugin):
         """
         Initialize a new Dictionary Plugin instance
+
+        Args:
+            plugin(src.plugins.Plugin): The plugin instance
         """
+        self.plugin = plugin
+        self.api_key = self.plugin.config['MerriamWebster']['APIKey']
         self.log = logging.getLogger('nano.plugins.dictionary')
-        self.dictionary = CollegiateDictionary(api_key)
+        self.dictionary = CollegiateDictionary(self.api_key)
 
     def define(self, word, max_definitions=3):
         """

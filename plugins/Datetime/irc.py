@@ -21,11 +21,15 @@ class Commands:
         ],
     }
 
-    def __init__(self):
+    def __init__(self, plugin):
         """
         Initialize a new Datetime Commands instance
+
+        Args:
+            plugin(src.plugins.Plugin): The plugin instance
         """
-        self.datetime = Datetime()
+        self.plugin = plugin
+        self.datetime = Datetime(plugin)
         self.log = logging.getLogger('nano.plugins.datetime.irc.commands')
 
     def command_date(self, command):

@@ -4,7 +4,6 @@ from plugins.exceptions import NotEnoughArgumentsError, InvalidSyntaxError
 from interfaces.irc.ignore import IgnoreList, IgnoreEntryAlreadyExistsError
 
 
-
 # noinspection PyMethodMayBeStatic
 class Commands:
     """
@@ -37,11 +36,15 @@ class Commands:
         ]
     }
 
-    def __init__(self):
+    def __init__(self, plugin):
         """
         Initialize a new Admin Ignore Commands instance
+
+        Args:
+            plugin(src.plugins.Plugin): The plugin instance
         """
         self.log = logging.getLogger('nano.plugins.admin.ignore.irc.commands')
+        self.plugin = plugin
         self.ignore_list = IgnoreList()
 
     def _get_destination(self, public):
