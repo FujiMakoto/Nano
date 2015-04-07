@@ -95,16 +95,11 @@ class Commands(NanoCmd):
         except NetworkNotFoundError:
             return print('No network with the specified ID exists')
 
-        if network is False:
-            return print('Please specify a valid network ID')
-        if network is None:
-            return print('No network with the specified ID exists')
-
         # Enable autojoin
         network.autojoin = True
         self.network_list.dbs.commit()
 
-        self.printf("Network <strong>{name}</strong> successfully enabled".format(name=network.name))
+        self.printf('Network <strong>{name}</strong> successfully enabled'.format(name=network.name))
 
     def do_disable(self, line):
         """
@@ -128,7 +123,7 @@ class Commands(NanoCmd):
         network.autojoin = False
         self.network_list.dbs.commit()
 
-        self.printf("Network <strong>{name}</strong> successfully disabled".format(name=network.name))
+        self.printf('Network <strong>{name}</strong> successfully disabled'.format(name=network.name))
 
     def do_edit(self, line):
         """
@@ -152,7 +147,7 @@ class Commands(NanoCmd):
         attribute = str(args[1]).lower()
         value = args[2]
         if attribute not in self.network_list.validAttributes:
-            return self.printf("Invalid attribute, valid attributes include: <strong>{attrs}</strong>"
+            return self.printf('Invalid attribute, valid attributes include: <strong>{attrs}</strong>'
                                .format(attrs=', '.join(self.network_list.validAttributes)))
 
         # Update the attribute
@@ -160,8 +155,8 @@ class Commands(NanoCmd):
         setattr(network, attribute, value)
         self.network_list.dbs.commit()
 
-        return self.printf("Attribute <strong>{attr}</strong> successfully updated to <strong>{value}</strong> for "
-                           "network <strong>{name}</strong>".format(attr=attribute, value=value, name=name))
+        return self.printf('Attribute <strong>{attr}</strong> successfully updated to <strong>{value}</strong> for '
+                           'network <strong>{name}</strong>'.format(attr=attribute, value=value, name=name))
 
     def do_create(self, line):
         """
@@ -184,13 +179,13 @@ class Commands(NanoCmd):
         # Create the network entry
         self.network_list.create(**inputs)
 
-        return self.printf("Network <strong>{name}</strong> successfully created (<strong>{host}:{port}</strong>)"
+        return self.printf('Network <strong>{name}</strong> successfully created (<strong>{host}:{port}</strong>)'
                            .format(name=inputs['name'], host=inputs['host'], port=inputs['port']))
 
     def do_remove(self, line):
         """
         Delete an existing network
-        Syntax: delete <id>
+        Syntax: remove <id>
         """
         # Format our args / opts and make sure we have enough args
         args = shlex.split(line)
@@ -209,4 +204,4 @@ class Commands(NanoCmd):
         name = network.name
         self.network_list.remove(network)
 
-        return self.printf("Network <strong>{name}</strong> successfully removed".format(name=name))
+        return self.printf('Network <strong>{name}</strong> successfully removed'.format(name=name))
