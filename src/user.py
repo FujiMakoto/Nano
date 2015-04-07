@@ -146,7 +146,8 @@ class UserValidators(Validator):
         schema = Schema({
             Required('email'): self.rules['email'],
             Required('nick'): self.rules['nick'],
-            Required('password'): self.rules['password']
+            Required('password'): self.rules['password'],
+            Optional('is_admin'): self.rules['is_admin']
         })
 
         self.validate(schema, **kwargs)
