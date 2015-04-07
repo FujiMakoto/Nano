@@ -150,7 +150,7 @@ class Postmaster:
         # Attempt to execute the command
         self.log.info('Attempting to execute a command from a response message')
         try:
-            reply = self.irc.commander.execute(message, source, public)
+            reply = self.irc.commander.execute(message, source=source, public=public)
         except Exception as e:
             self.log.warn('Exception thrown when executing command "{cmd}": {exception}'
                           .format(cmd=message, exception=str(e)))
