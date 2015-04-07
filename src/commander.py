@@ -173,7 +173,11 @@ class Commander:
         """
         # Strip the trigger and split the command string
         command_string = command_string.lstrip(">>>").strip()
-        command_args = shlex.split(command_string)
+        try:
+            command_args = shlex.split(command_string)
+        except ValueError as e:
+            self.log.debug('Shlex Split through an exception: ' + str(e))
+            command_args = str(command_string).split(' ')
 
         # Set our defaults
         parsed_args = []
