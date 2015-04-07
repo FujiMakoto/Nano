@@ -174,6 +174,7 @@ class Postmaster:
 
         # Format and return the message string
         message = self.irc.message_parser.html_to_irc(message)
+        message = ''.join(message.splitlines())  # Make sure no carriage returns exist in our response
         return message
 
     def deliver(self, responses, source, channel, public=True):
