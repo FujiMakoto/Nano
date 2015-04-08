@@ -30,3 +30,5 @@ class Channel(Base):
     autojoin = Column(Boolean)
 
     network = relationship('Network')
+    channel_banlist = relationship('ChannelBanlist')
+    channel_staff = relationship('ChannelStaff')
