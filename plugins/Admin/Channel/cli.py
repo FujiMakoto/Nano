@@ -187,6 +187,7 @@ class Commands(NanoCmd):
     def do_edit(self, line):
         """
         Modify a channel attribute
+        Syntax: edit <id> <attribute> <value>
         """
         # Format our args / opts and make sure we have enough args
         args = shlex.split(line)
