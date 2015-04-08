@@ -157,7 +157,8 @@ class Postmaster:
             return
 
         self.log.info('Cycling back to deliver a command response')
-        self.deliver(reply, source, channel, public)
+        if reply:
+            self.deliver(reply, source, channel, public)
 
     def _parse_response_message(self, response):
         """
