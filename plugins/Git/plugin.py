@@ -86,7 +86,13 @@ class GitManager:
 
             # HTML color formatted response
             if color:
-                bar_string = '<p class="fg-green">{pluses}</p><p class="fg-red">{minuses}</p>'
+                # Dynamically add pluses and minuses so we don't end up with empty format strings
+                bar_string = ''
+                if pluses:
+                    bar_string += '<p class="fg-green">{pluses}</p>'
+                if minuses:
+                    bar_string += '<p class="fg-red">{minuses}</p>'
+
                 return bar_string.format(pluses=pluses, minuses=minuses)
 
             # Unformatted response
