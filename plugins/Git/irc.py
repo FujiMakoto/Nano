@@ -62,3 +62,18 @@ class Commands:
         """
         commit = self.git.current()
         return 'Current commit: <p class="fg-orange">{name}</p>'.format(name=commit.name_rev)
+
+    def admin_command_status(self, command):
+        """
+        Displays how many commits behind of master we are
+
+        Args:
+            command(interfaces.irc.IRCCommand): The IRC command instance
+        """
+        ahead, behind = self.git.status()
+
+        # Not behind any commits
+        if not behind:
+            return 'Already up-to-date.'
+
+        return 'Behind \'origin/master\' by {no_commits} commits'.format(no_commits=behind)

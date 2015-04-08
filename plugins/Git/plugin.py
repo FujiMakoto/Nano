@@ -19,6 +19,9 @@ class GitManager:
     def pull(self):
         """
         Pull our latest commit and return some basic fetch information on the master branch
+
+        Returns:
+            tuple (name(str), commit(git.Commit), old_commit(git.Commit or None))
         """
         self.log.info('Pulling the most recent commit')
         fetch_info = self.origin.pull().pop(0)
@@ -27,9 +30,36 @@ class GitManager:
     def current(self):
         """
         Fetch the current commit
+
+        Returns:
+            git.Commit
         """
         self.log.info('Fetching the current commit')
         return self.origin.refs.master.commit
+
+    def status(self):
+        """
+        Returns how many commits ahead / behind we are
+
+        Returns:
+            list [0: ahead(int), 1: behind(int)]
+        """
+        self.log.info('Determining how many commits ahead / behind the remote repository we are')
+        ahead, behind = self.repo.git.rev_list('--count', '--left-right', 'master...origin/master').split('\t')
+
+        # How many commits ahead?
+        try:
+            ahead = int(ahead)
+        except ValueError:
+            ahead = 0
+
+        # How many commits behind?
+        try:
+            behind = int(behind)
+        except ValueError:
+            behind = 0
+
+        return ahead, behind
 
     @staticmethod
     def commit_bar(commit, max_length=16, color=True):
