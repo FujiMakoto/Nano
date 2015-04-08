@@ -15,6 +15,16 @@ class Commands:
         'pull': [
             'Pulls and incorporates the most recent changes from the development branch'
             'Syntax: pull'
+        ],
+
+        'current': [
+            'Displays the current commit name / revision',
+            'Syntax: current'
+        ],
+
+        'status': [
+            'Displays how many commits behind master we are',
+            'Syntax: status'
         ]
     }
 
@@ -65,7 +75,7 @@ class Commands:
 
     def admin_command_status(self, command):
         """
-        Displays how many commits behind of master we are
+        Displays how many commits behind master we are
 
         Args:
             command(interfaces.irc.IRCCommand): The IRC command instance
