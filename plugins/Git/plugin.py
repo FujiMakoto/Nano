@@ -74,8 +74,8 @@ class GitManager:
         Returns:
             str
         """
-        insertions = int(commit['insertions'])
-        deletions = int(commit['deletions'])
+        insertions = int(commit.stats.total['insertions'])
+        deletions = int(commit.stats.total['deletions'])
         total = insertions + deletions
 
         # Bar formatting
@@ -99,6 +99,6 @@ class GitManager:
         # Otherwise, trim the insertions / deletions to adhere to the max length
         percent_insertions = insertions / total
         insertions = round(total * percent_insertions)
-        deletions = total - insertions
+        deletions = abs(total - insertions)
 
         return bar(insertions, deletions)
