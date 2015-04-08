@@ -1,3 +1,4 @@
+import sys
 import logging
 from interfaces.cli.nano_cli import NanoCLI
 
@@ -20,4 +21,5 @@ class Interface:
         """
         Start the CLI Interface
         """
-        NanoCLI(self.nano).start()
+        command = sys.argv[1] if len(sys.argv) > 1 else None
+        NanoCLI(self.nano).start(command)

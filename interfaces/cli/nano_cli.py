@@ -58,7 +58,7 @@ class NanoCLI():
         """
         # Are we executing a single command?
         if command:
-            NanoShell(self.nano, self).onecmd('start')
+            NanoShell(self.nano, self).onecmd(command)
 
         # Otherwise, drop into the shell interpreter in a command loop
         os.system('clear')
