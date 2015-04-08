@@ -1,24 +1,24 @@
 > object day python
     from plugins.Datetime import Datetime
-    dt = Datetime()
+    dt = Datetime(None)
     return dt.day()
 < object
 
 > object weekday python
     from plugins.Datetime import Datetime
-    dt = Datetime()
+    dt = Datetime(None)
     return dt.day_of_week()
 < object
 
 > object month python
     from plugins.Datetime import Datetime
-    dt = Datetime()
+    dt = Datetime(None)
     return dt.month()
 < object
 
 > object time python
     from plugins.Datetime import Datetime
-    dt = Datetime()
+    dt = Datetime(None)
     return dt.time()
 < object
 

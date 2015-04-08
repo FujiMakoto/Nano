@@ -12,7 +12,6 @@ class Datetime:
         """
         # Get the plugin configuration
         self.plugin  = plugin
-        self.enabled = self.plugin.config.getboolean('Plugin', 'Enabled')
         self.log     = logging.getLogger('nano.plugins.datetime')
         self.now     = datetime.datetime.now()
 
