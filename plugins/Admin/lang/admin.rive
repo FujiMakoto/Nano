@@ -1,0 +1,2 @@
++ (@nicks) update and restart
+- [('command', 'git pull'), ('command', 'admin restart')]
