@@ -3,11 +3,6 @@ from database import MemorySession
 from database.models import UserSession
 from .user import User, UserValidators, UserNotFoundError
 
-__author__     = "Makoto Fujikawa"
-__copyright__  = "Copyright 2015, Makoto Fujikawa"
-__version__    = "1.0.0"
-__maintainer__ = "Makoto Fujikawa"
-
 
 class Auth:
     def __init__(self):
