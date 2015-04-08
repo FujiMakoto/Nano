@@ -3,6 +3,16 @@ from src.cmd import NanoCmd
 
 
 class NanoShell(NanoCmd):
+    intro = """
+    _   __
+   / | / /___ _____  ____
+  /  |/ / __ `/ __ \/ __ \\
+ / /|  / /_/ / / / / /_/ /
+/_/ |_/\__,_/_/ /_/\____/
+
+Welcome to the Nano shell.  Type 'start' to initialize. Type 'help' or '?' to list commands.
+"""
+
     """
     Nano shell interpreter
     """
