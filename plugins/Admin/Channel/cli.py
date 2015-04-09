@@ -1,8 +1,10 @@
 import shlex
-from src.cmd import NanoCmd
+
+from interfaces.cli.cmd import NanoCmd
 from interfaces.irc.channel import Channel, ChannelNotFoundException
 from interfaces.irc.network import Network, NetworkNotFoundError
 from plugins.Admin.Network.cli import Commands as NetworkCommands
+
 
 
 # noinspection PyUnboundLocalVariable

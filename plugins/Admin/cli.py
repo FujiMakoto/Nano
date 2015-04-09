@@ -1,4 +1,4 @@
-from src.cmd import NanoCmd
+from interfaces.cli.cmd import NanoCmd
 from .Network.cli import Commands as NetworkCommands
 from .Channel.cli import Commands as ChannelCommands
 

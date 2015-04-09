@@ -1,5 +1,5 @@
 import logging
-from src.cmd import NanoCmd
+from interfaces.cli.cmd import NanoCmd
 
 
 class NanoShell(NanoCmd):

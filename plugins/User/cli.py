@@ -1,5 +1,6 @@
 import shlex
-from src.cmd import NanoCmd
+
+from interfaces.cli.cmd import NanoCmd
 from src.user import User, UserNotFoundError
 
 
