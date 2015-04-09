@@ -158,7 +158,7 @@ class GitManager:
 
         # Otherwise, trim the insertions / deletions to adhere to the max length
         percent_insertions = insertions / total
-        insertions = round(total * percent_insertions)
-        deletions = abs(total - insertions)
+        insertions = round(max_length * percent_insertions)
+        deletions = abs(max_length - insertions)
 
         return bar(insertions, deletions)
