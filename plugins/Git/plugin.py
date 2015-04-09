@@ -1,4 +1,5 @@
 import os
+import re
 import logging
 from git import Repo
 
@@ -15,6 +16,11 @@ class GitManager:
         # Set our repo and origin branch
         self.repo = Repo(os.getcwd())
         self.origin = self.repo.remotes['origin']
+
+        # Regex parsing
+        self.re_files_changed = re.compile('(\d+?) files? changed')
+        self.re_insertions = re.compile('(\d+) insertions?')
+        self.re_deletions = re.compile('(\d+?) deletions?')
 
     def pull(self):
         """
@@ -60,6 +66,54 @@ class GitManager:
             behind = 0
 
         return ahead, behind
+
+    def diff_stats(self, commit1, commit2):
+        """
+        Return the formatted diff stat string, file changes, insertions and deletions for two commits
+
+        Args:
+            commit1(git.Commit): The first Commit to diff
+            commit2(git.Commit): The second Commit to diff
+
+        Returns
+            tuple (0: stats_string(str), 1: files_changed(int), 2: insertions(int), 3: deletions(int))
+        """
+        # Defaults
+        files_changed = 0
+        insertions = 0
+        deletions = 0
+
+        # Get our stats string and parse the attributes
+        stats_sting = self.repo.git.diff('--shortstat', commit1.hexsha, commit2.hexsha)
+        if not stats_sting:
+            return '', files_changed, insertions, deletions
+        stats_sting = stats_sting.strip()
+
+        # Files changed
+        files_changed_match = self.re_files_changed.search(stats_sting)
+        if files_changed_match:
+            try:
+                files_changed = int(files_changed_match.group(1))
+            except ValueError as e:
+                self.log.warn('Exception thrown when trying to set files_changed', exc_info=e)
+
+        # Insertions
+        insertions_match = self.re_insertions.search(stats_sting)
+        if insertions_match:
+            try:
+                insertions = int(insertions_match.group(1))
+            except ValueError as e:
+                self.log.warn('Exception thrown when trying to set insertions', exc_info=e)
+
+        # Deletions
+        deletions_match = self.re_deletions.search(stats_sting)
+        if deletions_match:
+            try:
+                deletions = int(deletions_match.group(1))
+            except ValueError as e:
+                self.log.warn('Exception thrown when trying to set insertions', exc_info=e)
+
+        return stats_sting, files_changed, insertions, deletions
 
     @staticmethod
     def commit_bar(commit, max_length=16, color=True):

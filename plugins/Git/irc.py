@@ -48,20 +48,20 @@ class Commands:
             command(interfaces.irc.IRCCommand): The IRC command instance
         """
         branch, commit, old_commit = self.git.pull()
-        stats = commit.stats.total
 
         # If old_commit is None, we're already up-to-date
         if not old_commit:
             return 'Already up-to-date.'
 
+        # We have to manually regex parse git output because our library doesn't support diff stats
+        stats_string = self.git.diff_stats(commit, old_commit)[0]
+
         # Set the formatted response data
         name = '<p class="fg-orange">{name}</p>'.format(name=commit.name_rev)
         bar = self.git.commit_bar(commit)
-        response = 'Updated to commit {name} - {no_files} files changed, {no_inserts} insertions(+), {no_deletes} ' \
-                   'deletions(-) [{bar}]'
+        response = 'Updated to commit {name} - {stats_string} [{bar}]'
 
-        return response.format(name=name, no_files=stats['files'], no_inserts=stats['insertions'],
-                               no_deletes=stats['deletions'], bar=bar)
+        return response.format(name=name, stats_string=stats_string, bar=bar)
 
     def admin_command_current(self, command):
         """
