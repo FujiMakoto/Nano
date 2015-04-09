@@ -1,4 +1,5 @@
 import bcrypt
+import logging
 from database import MemorySession
 from database.models import UserSession
 from .user import User, UserValidators, UserNotFoundError
@@ -139,6 +140,7 @@ class AuthSession:
         """
         Initialize a new Auth Session instance
         """
+        self.log = logging.getLogger('nano.irc.auth.session')
         self.dms = MemorySession()
 
     def exists(self, network, hostmask):
@@ -227,7 +229,11 @@ class AuthSession:
             query.filter(UserSession.hostmask == hostmask)
 
         # Destroy all matched user session entries
-        query.delete()
+        session = query.first()
+        if session:
+            self.log.info('Destroying login session for {source}'
+                          .format(source=hostmask or (user.nick if user else 'all users')))
+            self.dms.delete(session)
 
 
 # Exceptions
