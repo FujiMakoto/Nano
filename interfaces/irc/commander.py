@@ -159,6 +159,8 @@ class IRCCommand(Command):
         except NameError:
             raise SyntaxError('The IRCCommand instance requires the source and public arguments to be set')
 
+        self.target = kwargs.get('target', NotImplemented)
+
         # Event holders
         self._whois = []
 

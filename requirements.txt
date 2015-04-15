@@ -6,3 +6,6 @@ bcrypt<2.0
 pyparsing<2.1
 beautifulsoup4<4.4
 lxml<3.5
+python-dateutil>=2.4.2
+humanize>=0.5.1
+boltons>=0.6.2
