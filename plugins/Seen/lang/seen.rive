@@ -1,0 +1,11 @@
++ (@nicks) when did you [last|most recently] see (*)
+- ('command', 'seen last <star2>')
+
++ (@nicks) when did you [first|originally] [see|meet] (*)
+- ('command', 'seen first <star2>')
+
++ (@nicks) when was (*) last [in] [here|the channel]
+- ('command', 'seen last <star2>')
+
++ (@nicks) when was (*) first [in] [here|the channel]
+- ('command', 'seen first <star2>')

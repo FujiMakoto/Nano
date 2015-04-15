@@ -16,8 +16,8 @@ class Commands:
     ]
 
     FIRST_SEEN_RESPONSES = [
-        "I saw {name} for the first time {timedelta}!",
-        "I first saw {name} around {timedelta}."
+        "I met {name} for the first time {timedelta}!",
+        "I first met {name} around {timedelta}."
     ]
 
     LAST_SEEN_RESPONSES = [
