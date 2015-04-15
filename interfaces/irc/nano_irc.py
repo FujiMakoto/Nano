@@ -10,6 +10,7 @@ from .irc import IRC
 from .logger import IRCChannelLogger, IRCQueryLogger, IRCLoggerSource
 from .postmaster import Postmaster
 from .network import Network
+from .scheduler import Scheduler
 
 
 # noinspection PyMethodMayBeStatic
@@ -30,7 +31,6 @@ class NanoIRC(IRC):
                 Language engine to bind to this Network instance: Defaults to None (no language parsing)
         """
         super().__init__(network, channel)
-        # Setup
         self.log = logging.getLogger('nano.irc')
         self.network = network
         self.channel = channel
@@ -63,6 +63,9 @@ class NanoIRC(IRC):
         # Set up our channel and query loggers
         self.channel_logger = IRCChannelLogger(self, IRCLoggerSource(channel.name), bool(self.channel.log))
         self.query_loggers  = {}
+
+        # Set up the background task scheduler
+        self.scheduler = Scheduler(self)
 
     @staticmethod
     def config(network=None):
