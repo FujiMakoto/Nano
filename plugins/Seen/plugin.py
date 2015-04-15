@@ -33,7 +33,7 @@ class Seen:
             logfile(_io.TextIOWrapper): The opened logfile
 
         Returns:
-            SeenMessage
+            tuple of str
         """
         for line in logfile:
             # Loop through our message patterns and attempt to find a match
