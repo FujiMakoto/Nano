@@ -2,6 +2,7 @@ import re
 import logging
 import datetime as _datetime
 import dateutil.parser
+import time
 from humanize import naturaltime
 from boltons.jsonutils import reverse_iter_lines
 
@@ -103,7 +104,8 @@ class SeenMessage:
             message(str): The message that was matched
         """
         self.datetime = dateutil.parser.parse(datetime) if not isinstance(datetime, _datetime.datetime) else datetime
-        self.timedelta = naturaltime(_datetime.datetime.now() - self.datetime)
+        now = _datetime.datetime.fromtimestamp(time.mktime(time.localtime(time.time())))
+        self.timedelta = naturaltime(now - self.datetime)
         self.name = name
         self.message = message
 

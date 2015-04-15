@@ -9,3 +9,6 @@
 
 + (@nicks) when was (*) first [in] [here|the channel]
 - ('command', 'seen first <star2>')
+
++ (@nicks) seen (*)
+- ('command', 'seen last <star2>')
