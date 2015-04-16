@@ -1,6 +1,7 @@
 """
 nano_irc.py: Establish a new IRC connection
 """
+import threading
 import logging
 from configparser import ConfigParser
 from src.utilities import MessageParser
@@ -117,13 +118,14 @@ class NanoIRC(IRC):
             logger = self.query_logger(event.source)
             logger.log(log_format, IRCLoggerSource(event.source.nick, event.source.host), event.arguments[0])
 
-    def _get_replies(self, event, public):
+    def _handle_message(self, event, public=True, command_event=None):
         """
         Query available sources for a reply to an event message
 
         Args:
             event(irc.client.Event): The IRC event instance
             public(bool): This message was sent from a public channel
+            comment_event(str or None, Optional): The command event to trigger if there are no replies
 
         Returns:
             list, tuple, str or None
@@ -137,26 +139,16 @@ class NanoIRC(IRC):
         if self.commander.trigger_pattern.match(event.arguments[0]):
             self.log.info('Acknowledging {pub_or_priv} command request from {nick}'
                           .format(pub_or_priv='public' if public else 'private', nick=event.source.nick))
-            return self.commander.execute(event.arguments[0], source=event.source, public=public, target=event.target)
+            replies = self.commander.execute(event.arguments[0], source=event.source, public=public,
+                                             target=event.target)
+        else:
+            # Query the language engine for a response
+            self.lang.set_name(event.source.host, event.source.nick)
 
-        # Query the language engine for a response
-        self.lang.set_name(event.source.host, event.source.nick)
-
-        self.log.debug('Querying language engine for a response to ' + event.source.nick)
-        reply = self.lang.get_reply(event.source.host, event.arguments[0])
+            self.log.debug('Querying language engine for a response to ' + event.source.nick)
+            replies = self.lang.get_reply(event.source.host, event.arguments[0])
 
         # Return our reply
-        return reply
-
-    def _handle_replies(self, event, replies=None, public=True, command_event=None):
-        """
-        Deliver event replies or fire plugin events if no replies have been received
-
-        Args:
-            event(irc.client.Event): The event instance
-            replies(list, tuple, str or None. Optional): The event replies to process
-            comment_event(str or None, Optional): The command event to trigger if there are no replies
-        """
         if replies:
             self.log.debug('Delivering response messages')
             self.postmaster.deliver(replies, event.source, self.channel, public)
@@ -362,8 +354,7 @@ class NanoIRC(IRC):
         self._log_message(event, self.channel_logger.MESSAGE, True)
 
         # Query for replies and fire plugin events
-        replies = self._get_replies(event, True)
-        self._handle_replies(event, replies, True, self.commander.EVENT_PUBMSG)
+        threading.Thread(target=self._handle_message, args=(event, True, self.commander.EVENT_PUBMSG)).start()
 
     def on_action(self, connection, event):
         """
@@ -382,8 +373,7 @@ class NanoIRC(IRC):
         self._log_message(event, log_format, public)
 
         # Query for replies and fire plugin events
-        replies = self._get_replies(event, public)
-        self._handle_replies(event, replies, public, command_event)
+        threading.Thread(target=self._handle_message, args=(event, public, command_event)).start()
 
     def on_public_notice(self, connection, event):
         """
@@ -397,7 +387,7 @@ class NanoIRC(IRC):
         self._log_message(event, self.channel_logger.NOTICE, True)
 
         # Fire plugin events
-        self._handle_replies(event, public=True, command_event=self.commander.EVENT_PUBNOTICE)
+        threading.Thread(target=self._fire_plugin_event, args=(self.commander.EVENT_PUBNOTICE, event)).start()
 
     def on_private_message(self, connection, event):
         """
@@ -411,8 +401,7 @@ class NanoIRC(IRC):
         self._log_message(event, self.query_logger(event.source).MESSAGE, False)
 
         # Query for replies and fire plugin events
-        replies = self._get_replies(event, False)
-        self._handle_replies(event, replies, False, self.commander.EVENT_PRIVMSG)
+        threading.Thread(target=self._handle_message, args=(event, False, self.commander.EVENT_PRIVMSG)).start()
 
     def on_private_notice(self, connection, event):
         """
@@ -426,7 +415,7 @@ class NanoIRC(IRC):
         self._log_message(event, self.query_logger(event.source).NOTICE, False)
 
         # Fire plugin events
-        self._handle_replies(event, public=False, command_event=self.commander.EVENT_PRIVNOTICE)
+        threading.Thread(target=self._fire_plugin_event, args=(self.commander.EVENT_PRIVNOTICE, event)).start()
 
     def on_join(self, connection, event):
         """
