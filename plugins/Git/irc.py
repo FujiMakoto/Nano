@@ -54,11 +54,11 @@ class Commands:
             return 'Already up-to-date.'
 
         # We have to manually regex parse git output because our library doesn't support diff stats
-        stats_string = self.git.diff_stats(old_commit, commit)[0]
+        stats_string, files_changed, insertions, deletions = self.git.diff_stats(old_commit, commit)
 
         # Set the formatted response data
         name = '<p class="fg-orange">{name}</p>'.format(name=commit.name_rev)
-        bar = self.git.commit_bar(commit)
+        bar = self.git.commit_bar(insertions, deletions)
         response = 'Updated to commit {name} - {stats_string} [{bar}]'
 
         return response.format(name=name, stats_string=stats_string, bar=bar)

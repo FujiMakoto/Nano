@@ -84,13 +84,13 @@ class GitManager:
         deletions = 0
 
         # Get our stats string and parse the attributes
-        stats_sting = self.repo.git.diff('--shortstat', commit1.hexsha, commit2.hexsha)
-        if not stats_sting:
+        stats_string = self.repo.git.diff('--shortstat', commit1.hexsha, commit2.hexsha)
+        if not stats_string:
             return '', files_changed, insertions, deletions
-        stats_sting = stats_sting.strip()
+        stats_string = stats_string.strip()
 
         # Files changed
-        files_changed_match = self.re_files_changed.search(stats_sting)
+        files_changed_match = self.re_files_changed.search(stats_string)
         if files_changed_match:
             try:
                 files_changed = int(files_changed_match.group(1))
@@ -98,7 +98,7 @@ class GitManager:
                 self.log.warn('Exception thrown when trying to set files_changed', exc_info=e)
 
         # Insertions
-        insertions_match = self.re_insertions.search(stats_sting)
+        insertions_match = self.re_insertions.search(stats_string)
         if insertions_match:
             try:
                 insertions = int(insertions_match.group(1))
@@ -106,30 +106,29 @@ class GitManager:
                 self.log.warn('Exception thrown when trying to set insertions', exc_info=e)
 
         # Deletions
-        deletions_match = self.re_deletions.search(stats_sting)
+        deletions_match = self.re_deletions.search(stats_string)
         if deletions_match:
             try:
                 deletions = int(deletions_match.group(1))
             except ValueError as e:
                 self.log.warn('Exception thrown when trying to set insertions', exc_info=e)
 
-        return stats_sting, files_changed, insertions, deletions
+        return stats_string, files_changed, insertions, deletions
 
     @staticmethod
-    def commit_bar(commit, max_length=16, color=True):
+    def commit_bar(insertions, deletions, max_length=16, color=True):
         """
         Formats and returns an insertion / deletions bar for a given commit
 
         Args:
-            commit(git.Commit): The Git Commit instance
+            insertions(insertions): The number of line insertions
+            deletions(deletions): The number of line deletions
             max_length(int, optional): The maximum length of the commit bar. Defaults to 16
             color(bool): Apply HTML color formatting to the pluses and minuses
 
         Returns:
             str
         """
-        insertions = int(commit.stats.total['insertions'])
-        deletions = int(commit.stats.total['deletions'])
         total = insertions + deletions
 
         # Bar formatting
