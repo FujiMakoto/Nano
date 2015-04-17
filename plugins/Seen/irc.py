@@ -47,8 +47,13 @@ class Commands:
         if not command.public:
             return 'If you want to know when I first saw them, ask me in a public channel!'
 
+        # Make sure logging has been enabled on this channel first
+        if command.event.target not in command.connection.channel_loggers:
+            self.log.debug('{channel} does not have logging enabled, aborting'.format(channel=command.target))
+            return "Sorry, I'm not allowed to tell you that!"
+
         # Set name / logfile
-        logfile = command.connection.channel_logger.logfile_path
+        logfile = command.connection.channel_loggers[command.event.target].logfile_path
         try:
             name = command.args[0].capitalize()
         except IndexError:
@@ -78,8 +83,13 @@ class Commands:
         if not command.public:
             return 'If you want to know when I last saw them, ask me in a public channel!'
 
+        # Make sure logging has been enabled on this channel first
+        if command.event.target not in command.connection.channel_loggers:
+            self.log.debug('{channel} does not have logging enabled, aborting'.format(channel=command.target))
+            return "Sorry, I'm not allowed to tell you that!"
+
         # Set name / logfile
-        logfile = command.connection.channel_logger.logfile_path
+        logfile = command.connection.channel_loggers[command.event.target].logfile_path
         try:
             name = command.args[0].capitalize()
         except IndexError:

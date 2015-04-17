@@ -160,7 +160,7 @@ class NanoIRC(IRC):
             self.log.info('Acknowledging {pub_or_priv} command request from {nick}'
                           .format(pub_or_priv='public' if public else 'private', nick=event.source.nick))
             replies = self.commander.execute(event.arguments[0], source=event.source, public=public,
-                                             target=event.target)
+                                             event=event)
         else:
             # Query the language engine for a response
             self.lang.set_name(event.source.host, event.source.nick)

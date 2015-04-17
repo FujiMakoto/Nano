@@ -70,9 +70,10 @@ class IRCCommander(Commander):
         admin_prefix = "admin_command_"
         user_prefix  = "user_command_"
 
-        # Source / public
+        # Source / public / event
         source = kwargs['source']
         public = kwargs['public']
+        event  = kwargs['event']
 
         # Parse our command string into names, arguments and options
         try:
@@ -91,17 +92,17 @@ class IRCCommander(Commander):
 
             # If we're an administrator, attempt to execute an admin command
             if user.is_admin:
-                response = self._execute(command, 'irc', plugin, args, opts, source, public, admin_prefix)
+                response = self._execute(command, 'irc', plugin, args, opts, source, public, admin_prefix, event=event)
                 if response:
                     return response
 
             # Attempt to execute an unprivileged user command
-            response = self._execute(command, 'irc', plugin, args, opts, source, public, user_prefix)
+            response = self._execute(command, 'irc', plugin, args, opts, source, public, user_prefix, event=event)
             if response:
                 return response
 
         # Attempt to execute a public command
-        return self._execute(command, 'irc', plugin, args, opts, source, public)
+        return self._execute(command, 'irc', plugin, args, opts, source, public, event=event)
 
     def event(self, event_name, event):
         """
@@ -173,7 +174,7 @@ class IRCCommand(Command):
         except NameError:
             raise SyntaxError('The IRCCommand instance requires the source and public arguments to be set')
 
-        self.target = kwargs.get('target', NotImplemented)
+        self.event = kwargs.get('event', NotImplemented)
 
         # Event holders
         self._whois = []

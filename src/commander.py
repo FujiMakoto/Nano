@@ -39,7 +39,8 @@ class Commander:
         # Command instance
         self.command = Command
 
-    def _execute(self, command_name, interface_name, plugin, args, opts, source, public, command_prefix='command_'):
+    def _execute(self, command_name, interface_name, plugin, args, opts, source, public, command_prefix='command_',
+                 **kwargs):
         """
         Handle execution of the specified command
 
@@ -62,7 +63,9 @@ class Commander:
             command_method = plugin.get_command(command_name, interface_name, command_prefix)
             if callable(command_method):
                 syntax, min_args = self._parse_command_syntax(command_method)
-                command = self.command(self.connection, args, opts, source=source, public=public, syntax=syntax)
+                event = kwargs.get('event', NotImplemented)
+                command = self.command(self.connection, args, opts, source=source, public=public, syntax=syntax,
+                                       event=event)
                 if len(args) < min_args:
                     self.log.info('Not enough arguments supplied to execute this command')
                     raise NotEnoughArgumentsError(command, min_args)
@@ -327,7 +330,7 @@ class Commander:
 
 class Command:
     """
-    An IRC command
+    A base command instance
     """
     def __init__(self, connection, args, opts, **kwargs):
         """
