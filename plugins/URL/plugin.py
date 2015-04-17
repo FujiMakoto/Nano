@@ -1,3 +1,4 @@
+import socket
 import re
 import logging
 from urllib.request import urlopen
@@ -67,6 +68,9 @@ class URL:
         except URLError as e:
             page = None
             self.log.info('URL Error: ' + str(e.reason))
+        except socket.timeout:
+            page = None
+            self.log.info('HTTP request timed out')
 
         return page
 
@@ -94,7 +98,8 @@ class URL:
 
         return title
 
-    def _format_title(self, url, title):
+    @staticmethod
+    def _format_title(url, title):
         """
         Format a specified title string
 
