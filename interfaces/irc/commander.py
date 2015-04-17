@@ -1,6 +1,7 @@
 import logging
 from src.plugins import PluginNotLoadedError
-from src.commander import Commander, Command
+from src.commander import Commander, Command, CommandError
+from src.validator import ValidationError
 
 
 class IRCCommander(Commander):
@@ -126,7 +127,20 @@ class IRCCommander(Commander):
             if plugin.has_events('irc'):
                 event_method = plugin.get_event(event_name, 'irc')
                 if callable(event_method):
-                    event_replies = event_method(event, self.connection)
+                    try:
+                        event_replies = event_method(event, self.connection)
+                    # Command exceptions
+                    except CommandError as e:
+                        self.log.info('Command raised an exception: ' + e.error_message)
+                        continue
+                    # Validation exceptions
+                    except ValidationError as e:
+                        self.log.info('Validation exception raised: ' + e.error_message)
+                        continue
+                    # Uncaught exceptions (actual errors)
+                    except Exception as e:
+                        self.log.error('Uncaught exception raised when executing a plugin event', exc_info=e)
+                        continue
                     if event_replies:
                         replies.append(event_replies)
 
