@@ -55,7 +55,7 @@ class Commands:
             raise NotEnoughArgumentsError
 
         # Are we asking when did we first see ourselves?
-        if name.lower() == command.connection.network.nick.lower():
+        if name.lower() == command.connection.connection.get_nickname().lower():
             return "Why are you asking me when I first met myself? You're a weird person!"
 
         # Have we seen this person?
@@ -86,7 +86,7 @@ class Commands:
             raise NotEnoughArgumentsError
 
         # Are we asking when did we last saw ourselves?
-        if name.lower() == command.connection.network.nick.lower():
+        if name.lower() == command.connection.connection.get_nickname().lower():
             return "Why are you asking me when I last saw myself? You're a weird person!"
 
         # Have we seen this person?
