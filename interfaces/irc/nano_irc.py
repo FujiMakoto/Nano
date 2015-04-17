@@ -473,8 +473,9 @@ class NanoIRC(IRC):
         if not len(event.arguments):
             event.arguments.append(None)
 
-        logger = self.channel_logger(event.target)
-        logger.log(logger.QUIT, event.source.nick, event.source.host, event.arguments[0])
+        # https://github.com/FujiMakoto/Nano/issues/33
+        # logger = self.channel_logger(event.target)
+        # logger.log(logger.QUIT, event.source.nick, event.source.host, event.arguments[0])
 
         # Fire plugin events
         threading.Thread(target=self._fire_plugin_event, args=(self.commander.EVENT_QUIT, event))
