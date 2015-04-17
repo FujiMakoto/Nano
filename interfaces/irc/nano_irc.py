@@ -62,8 +62,9 @@ class NanoIRC(IRC):
         self.network_features = {}
 
         # Set up our channel and query loggers
-        self.channel_logger = IRCChannelLogger(self, IRCLoggerSource(channel.name), bool(self.channel.log))
-        self.query_loggers  = {}
+        # self.channel_logger = IRCChannelLogger(self, IRCLoggerSource(channel.name), bool(self.channel.log))
+        self.channel_loggers = {}
+        self.query_loggers   = {}
 
         # Set up the background task scheduler
         self.scheduler = Scheduler(self)
@@ -83,6 +84,24 @@ class NanoIRC(IRC):
             return config[network]
 
         return config
+
+    def channel_logger(self, channel):
+        """
+        Retrieve a channel logger instance for the specified channel
+
+        Args:
+            channel(str): Name of the channel
+
+        Returns:
+            logger.IRCChannelLogger
+        """
+        # Do we already have a channel logging instance for this channel?
+        if channel in self.channel_loggers:
+            return self.channel_loggers[channel]
+
+        # Set up a new channel logger instance
+        self.channel_loggers[channel] = IRCChannelLogger(self, IRCLoggerSource(channel))
+        return self.channel_loggers[channel]
 
     def query_logger(self, source):
         """
@@ -113,7 +132,8 @@ class NanoIRC(IRC):
             public(bool): This message was sent from a public channel
         """
         if public:
-            self.channel_logger.log(log_format, event.source.nick, event.source.host, event.arguments[0])
+            logger = self.channel_logger(event.target)
+            logger.log(log_format, event.source.nick, event.source.host, event.arguments[0])
         else:
             logger = self.query_logger(event.source)
             logger.log(log_format, IRCLoggerSource(event.source.nick, event.source.host), event.arguments[0])
@@ -351,7 +371,7 @@ class NanoIRC(IRC):
             event(irc.client.Event): The event response data
         """
         # Log the message
-        self._log_message(event, self.channel_logger.MESSAGE, True)
+        self._log_message(event, self.channel_logger(event.target).MESSAGE, True)
 
         # Query for replies and fire plugin events
         threading.Thread(target=self._handle_message, args=(event, True, self.commander.EVENT_PUBMSG)).start()
@@ -367,7 +387,7 @@ class NanoIRC(IRC):
         # Was this action sent from a public channel or private query?
         public = (event.target != connection.get_nickname)
         command_event = self.commander.EVENT_PUBACTION if public else self.commander.EVENT_PRIVACTION
-        log_format = self.channel_logger.ACTION if public else self.query_logger(event.source).ACTION
+        log_format = self.channel_logger(event.target).ACTION if public else self.query_logger(event.source).ACTION
 
         # Log the action
         self._log_message(event, log_format, public)
@@ -384,7 +404,7 @@ class NanoIRC(IRC):
             event(irc.client.Event): The event response data
         """
         # Log the notice
-        self._log_message(event, self.channel_logger.NOTICE, True)
+        self._log_message(event, self.channel_logger(event.target).NOTICE, True)
 
         # Fire plugin events
         threading.Thread(target=self._fire_plugin_event, args=(self.commander.EVENT_PUBNOTICE, event)).start()
@@ -425,7 +445,8 @@ class NanoIRC(IRC):
             connection(irc.client.ServerConnection): The active IRC server connection
             event(irc.client.Event): The event response data
         """
-        self.channel_logger.log(self.channel_logger.JOIN, event.source.nick, event.source.host)
+        logger = self.channel_logger(event.target)
+        logger.log(logger.JOIN, event.source.nick, event.source.host)
 
     def on_part(self, connection, event):
         """
@@ -438,7 +459,8 @@ class NanoIRC(IRC):
         if not len(event.arguments):
             event.arguments.append(None)
 
-        self.channel_logger.log(self.channel_logger.PART, event.source.nick, event.source.host, event.arguments[0])
+        logger = self.channel_logger(event.target)
+        logger.log(logger.PART, event.source.nick, event.source.host, event.arguments[0])
 
     def on_quit(self, connection, event):
         """
@@ -448,17 +470,14 @@ class NanoIRC(IRC):
             connection(irc.client.ServerConnection): The active IRC server connection
             event(irc.client.Event): The event response data
         """
-        # TODO: Clear login sessions
         if not len(event.arguments):
             event.arguments.append(None)
 
-        self.channel_logger.log(self.channel_logger.QUIT, event.source.nick, event.source.host, event.arguments[0])
+        logger = self.channel_logger(event.target)
+        logger.log(logger.QUIT, event.source.nick, event.source.host, event.arguments[0])
 
         # Fire plugin events
-        event_replies = self.commander.event(self.commander.EVENT_QUIT, event)
-
-        if event_replies:
-            self.postmaster.deliver(event_replies, event.source, self.channel)
+        threading.Thread(target=self._fire_plugin_event, args=(self.commander.EVENT_QUIT, event))
 
     def on_kick(self, connection, event):
         """

@@ -27,7 +27,9 @@ class Scheduler:
         Flush the IRC Channel and Query logfiles to disk every minute
         """
         self.log.info('Flushing channel and query logfiles')
-        self.irc.channel_logger.flush()
+
+        for channel, logger in self.irc.channel_loggers.items():
+            logger.flush()
 
         for nick, logger in self.irc.query_loggers.items():
             logger.flush()

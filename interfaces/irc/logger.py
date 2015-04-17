@@ -146,6 +146,7 @@ class IRCChannelLogger(_IRCLogger):
             enabled(bool): Enable / disable logging
         """
         super().__init__(irc, source, enabled)
+        self.last_log = time.time()
 
         # Set our base path
         self.base_path    = str(self.config['IRC']['LogPath']).rstrip("/") + "/%s/" % self.irc.network.name
@@ -182,6 +183,9 @@ class IRCChannelLogger(_IRCLogger):
         log_entry = log_format.format(nick=nick, hostmask=hostmask or "", message=message or "",
                                       channel=self.source.name)
         self.logfile.write(self.get_timestamp() + log_entry + "\n")
+
+        # Update the last log time
+        self.last_log = time.time()
 
 
 class IRCQueryLogger(_IRCLogger):
@@ -233,6 +237,7 @@ class IRCQueryLogger(_IRCLogger):
             enabled(bool): Enable / disable logging. Defaults to True
         """
         super().__init__(irc, source, enabled)
+        self.last_log = time.time()
 
         # Set come configuration variables
         self.redact_command_args = self.config.getboolean('IRC', 'RedactQueryCommandArguments')
@@ -304,6 +309,9 @@ class IRCQueryLogger(_IRCLogger):
         # Format and write the log entry
         log_entry = log_format.format(nick=nick, hostmask=hostmask or "", message=message or "")
         self.logfile.write(self.get_timestamp() + log_entry + "\n")
+
+        # Update the last log time
+        self.last_log = time.time()
 
 
 class IRCLoggerSource:
